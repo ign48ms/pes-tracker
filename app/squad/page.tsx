@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import CustomModal from '../components/CustomModal';
 import Pagination from '../components/Pagination';
 import type { Player, PlayerStatus, ModalConfig, SortKey, SortDir } from '../lib/types';
-import { ALL_POSITIONS, POS_ORDER, getCompColor, getPositionColors, getRatingColors, getStatusColor } from '../lib/constants';
+import { ALL_POSITIONS, POS_GROUPS, POS_ORDER, getCompColor, getPositionColors, getRatingColors, getStatusColor } from '../lib/constants';
 import { useApp } from '../lib/AppContext';
 import { derivePlayerStats, getMatchCompetitions, filterMatchesByComp, applySeasonFilter } from '../lib/stats';
 import type { SeasonFilter } from '../lib/types';
@@ -28,6 +28,7 @@ export default function SquadPage() {
   // Also listen for search input
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStarters, setFilterStarters] = useState(false);
+  const [filterPosition, setFilterPosition] = useState("");
 
   // ─── Competition filtering ───
   const matchCompetitions = useMemo(() => getMatchCompetitions(matches), [matches]);
@@ -58,6 +59,9 @@ export default function SquadPage() {
     if (filterStarters) {
       filtered = filtered.filter(p => p.isStarter && (p.status || "active") === "active");
     }
+    if (filterPosition) {
+      filtered = filtered.filter(p => p.position === filterPosition);
+    }
     const statKeys = ["goals", "assists", "appearances"] as const;
     const STATUS_ORDER: Record<string, number> = { active: 0, loaned: 1, sold: 2, retired: 3 };
     // Pre-compute stats per player ONCE to avoid two .get() calls per comparator invocation
@@ -75,7 +79,7 @@ export default function SquadPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted.map(({ p }) => p);
-  }, [players, searchQuery, filterStarters, sortKey, sortDir, playerFilteredStats]);
+  }, [players, searchQuery, filterStarters, filterPosition, sortKey, sortDir, playerFilteredStats]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -200,7 +204,7 @@ export default function SquadPage() {
   const playersPerPage = 20;
   const totalActivePages = Math.max(1, Math.ceil(activePlayers.length / playersPerPage));
   const paginatedActive = activePlayers.slice((currentPage - 1) * playersPerPage, currentPage * playersPerPage);
-  useEffect(() => { setCurrentPage(1); }, [filterComp, filterSeason, searchQuery, filterStarters]);
+  useEffect(() => { setCurrentPage(1); }, [filterComp, filterSeason, searchQuery, filterStarters, filterPosition]);
   useEffect(() => { if (currentPage > totalActivePages) setCurrentPage(totalActivePages); }, [currentPage, totalActivePages]);
 
   // ─── Squad summary stats (memoized) ───
@@ -383,19 +387,51 @@ export default function SquadPage() {
           </div>
         )}
 
-        {/* Player Search */}
-        <div className="flex items-center gap-3 mb-4">
-          <label htmlFor="squad-search" className="sr-only">Search players</label>
-          <input
-            id="squad-search"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search players..."
-            className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition w-64"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-xs text-slate-500 hover:text-slate-300">✕ Clear</button>
-          )}
+        {/* Player Search + Position Filter */}
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex items-center gap-3">
+            <label htmlFor="squad-search" className="sr-only">Search players</label>
+            <input
+              id="squad-search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search players..."
+              className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition w-64"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="text-xs text-slate-500 hover:text-slate-300">✕ Clear</button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <button
+              onClick={() => setFilterPosition("")}
+              className={`px-2.5 py-1 rounded text-xs font-bold border transition ${
+                filterPosition === ""
+                  ? "bg-slate-600 text-slate-100 border-slate-400"
+                  : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500"
+              }`}
+            >
+              All
+            </button>
+            {POS_GROUPS.map(group => (
+              <React.Fragment key={group.label}>
+                <span className="text-slate-700 text-xs select-none">│</span>
+                {group.positions.map(pos => (
+                  <button
+                    key={pos}
+                    onClick={() => setFilterPosition(prev => prev === pos ? "" : pos)}
+                    className={`px-2.5 py-1 rounded text-xs font-bold border transition ${
+                      filterPosition === pos
+                        ? getPositionColors(pos)
+                        : "bg-slate-800 text-slate-500 border-slate-700 hover:border-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
         {/* SQUAD TABLE */}

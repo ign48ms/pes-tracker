@@ -18,10 +18,10 @@ export const MAX_MATCH_PLAYERS = 16;
 export const MAX_BENCH_SLOTS = 5;
 
 // ─── Positions ───
-export const ALL_POSITIONS = ["CF", "SS", "RWF", "LWF", "AMF", "CMF", "DMF", "RB", "LB", "CB", "GK"] as const;
+export const ALL_POSITIONS = ["CF", "SS", "RWF", "LWF", "AMF", "RMF", "LMF", "CMF", "DMF", "RB", "LB", "CB", "GK"] as const;
 
 export const ATTACK_POS = ["CF", "SS", "RWF", "LWF"];
-export const MID_POS = ["AMF", "CMF", "DMF"];
+export const MID_POS = ["AMF", "RMF", "LMF", "CMF", "DMF"];
 export const DEF_POS = ["CB", "LB", "RB"];
 
 export const POS_GROUPS: { label: string; positions: string[] }[] = [
@@ -32,7 +32,7 @@ export const POS_GROUPS: { label: string; positions: string[] }[] = [
 ];
 
 export const POS_ORDER: Record<string, number> = {
-  CF: 1, SS: 2, RWF: 3, LWF: 4, AMF: 5, CMF: 6, DMF: 7, RB: 8, LB: 9, CB: 10, GK: 11,
+  CF: 1, SS: 2, RWF: 3, LWF: 4, AMF: 5, RMF: 6, LMF: 7, CMF: 8, DMF: 9, RB: 10, LB: 11, CB: 12, GK: 13,
 };
 
 // ─── Default competitions ───
@@ -76,15 +76,17 @@ export function getPositionColors(pos: string): string {
 
 // ─── PES-style rating colors ───
 export function getRatingColors(ovr: number): string {
-  if (ovr >= 90) return "bg-cyan-600/30 text-cyan-300 border-cyan-500/50";
-  if (ovr >= 85) return "bg-teal-700/30 text-teal-300 border-teal-500/50";
-  if (ovr >= 80) return "bg-emerald-700/30 text-emerald-300 border-emerald-500/50";
-  if (ovr >= 75) return "bg-green-800/30 text-green-300 border-green-600/50";
-  if (ovr >= 70) return "bg-lime-800/30 text-lime-300 border-lime-600/50";
-  if (ovr >= 65) return "bg-yellow-800/30 text-yellow-300 border-yellow-600/50";
-  if (ovr >= 60) return "bg-orange-800/30 text-orange-300 border-orange-600/50";
-  if (ovr >= 50) return "bg-amber-900/40 text-amber-400 border-amber-700/50";
-  return "bg-stone-800/40 text-stone-400 border-stone-600/50";
+  if (ovr >= 100) return "bg-blue-800/40 text-blue-300 border-blue-600/50";
+  if (ovr >= 95)  return "bg-cyan-800/40 text-cyan-300 border-cyan-600/50";
+  if (ovr >= 90)  return "bg-teal-700/40 text-teal-300 border-teal-500/50";
+  if (ovr >= 85)  return "bg-emerald-800/40 text-emerald-300 border-emerald-600/50";
+  if (ovr >= 80)  return "bg-green-800/40 text-green-400 border-green-600/50";
+  if (ovr >= 75)  return "bg-lime-900/40 text-lime-400 border-lime-700/50";
+  if (ovr >= 70)  return "bg-yellow-900/40 text-yellow-400 border-yellow-700/50";
+  if (ovr >= 65)  return "bg-amber-950/50 text-amber-600 border-amber-900/50";
+  if (ovr >= 60)  return "bg-orange-950/50 text-orange-700 border-orange-900/50";
+  if (ovr >= 50)  return "bg-red-950/50 text-red-700 border-red-900/50";
+  return "bg-stone-900/50 text-stone-500 border-stone-700/50";
 }
 
 // ─── Position group colors (for match squad selection) ───

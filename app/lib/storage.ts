@@ -1,6 +1,6 @@
 // ─── localStorage utilities with typed helpers and migration ───
 import type { Player, Match, Season, Competition, ExportData, Team } from "./types";
-import { DEFAULT_COMPETITIONS, DEFAULT_COMPETITION_OBJECTS, FRIENDLY_DEFAULT, DEFAULT_TEAM_NAME } from "./constants";
+import { DEFAULT_COMPETITIONS, DEFAULT_COMPETITION_OBJECTS, FRIENDLY_DEFAULT, DEFAULT_TEAM_NAME, DEFAULT_FORMATION } from "./constants";
 
 const KEYS = {
   players: "pes-players",
@@ -12,6 +12,8 @@ const KEYS = {
   archivedTeams: "pes-archived-teams",
   /** Active team metadata: { id: string, createdAt: number } */
   activeTeamMeta: "pes-active-team",
+  /** User's preferred default formation key for new matches */
+  defaultFormation: "pes-default-formation",
 } as const;
 
 const MIGRATION_KEY = "pes-migration-version";
@@ -302,6 +304,15 @@ export function getTeamName(): string {
 
 export function saveTeamName(name: string): void {
   safeWrite(KEYS.teamName, name);
+}
+
+// ─── Default Formation preference ───
+export function getDefaultFormation(): string {
+  return localStorage.getItem(KEYS.defaultFormation) || DEFAULT_FORMATION;
+}
+
+export function saveDefaultFormation(formation: string): void {
+  safeWrite(KEYS.defaultFormation, formation);
 }
 
 // ─── Seasons ───

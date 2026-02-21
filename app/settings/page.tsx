@@ -5,9 +5,10 @@ import SeasonManager from "../components/SeasonManager";
 import TeamManager from "../components/TeamManager";
 const DataManager = dynamic(() => import("../components/DataManager"), { ssr: false });
 import { useApp } from "../lib/AppContext";
+import { FORMATION_NAMES } from "../lib/constants";
 
 export default function SettingsPage() {
-  const { teamName, setTeamName } = useApp();
+  const { teamName, setTeamName, defaultFormation, setDefaultFormation } = useApp();
   const [nameInput, setNameInput] = useState(teamName);
 
   useEffect(() => { setNameInput(teamName); }, [teamName]);
@@ -57,6 +58,29 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Preferences */}
+        <section className="mb-8">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-orange-500 rounded-full"></span>
+            Preferences
+          </h2>
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+            <p className="text-xs text-slate-500 mb-4">Choose the default formation shown when adding a new match.</p>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-slate-300 whitespace-nowrap">Default Formation</label>
+              <select
+                value={defaultFormation}
+                onChange={e => setDefaultFormation(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
+              >
+                {FORMATION_NAMES.map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+
         {/* Season Management */}
         <section className="mb-8">
           <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -65,7 +89,6 @@ export default function SettingsPage() {
           </h2>
           <SeasonManager />
         </section>
-
         {/* Team Management */}
         <section className="mb-8">
           <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">

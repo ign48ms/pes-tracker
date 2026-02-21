@@ -18,7 +18,7 @@ import MatchFilters from '../components/MatchFilters';
 
 // --- Main Page ---
 export default function MatchPage() {
-  const { players, matches, seasons, competitions, activeSeason, isLoaded, isViewingActiveTeam, setMatches, setCompetitions, addMatch: ctxAddMatch, deleteMatch: ctxDeleteMatch, updateMatch: ctxUpdateMatch, addCompetition: ctxAddCompetition } = useApp();
+  const { players, matches, seasons, competitions, activeSeason, isLoaded, isViewingActiveTeam, setMatches, setCompetitions, addMatch: ctxAddMatch, deleteMatch: ctxDeleteMatch, updateMatch: ctxUpdateMatch, addCompetition: ctxAddCompetition, defaultFormation } = useApp();
   
   // Form Inputs
   const [opponent, setOpponent] = useState("");
@@ -52,6 +52,15 @@ export default function MatchPage() {
   const [pitchSlots, setPitchSlots] = useState<(number | null)[]>(Array(11).fill(null));
   /** Up to 5 bench player IDs */
   const [benchSlots, setBenchSlots] = useState<(number | null)[]>([]);
+
+  // Initialize selectedFormation from the user's saved default preference once data is loaded
+  const didInitFormation = useRef(false);
+  useEffect(() => {
+    if (isLoaded && !didInitFormation.current) {
+      didInitFormation.current = true;
+      setSelectedFormation(defaultFormation);
+    }
+  }, [isLoaded, defaultFormation]);
 
   // Refs for current slot state so handleFormationChange doesn't need them in its dep array
   const pitchSlotsRef = useRef(pitchSlots);
@@ -162,20 +171,29 @@ export default function MatchPage() {
     const newSlots: (number | null)[] = Array(11).fill(null);
     const newBench: number[] = [];
 
-    // Pass 1: assign starters to slots by exact position match
-    for (let i = 0; i < formation.slots.length; i++) {
-      const slot = formation.slots[i];
-      const match = starters.find(
-        p => !placed.has(p.id) && slot.suggestedPositions.includes(p.position)
-      );
-      if (match) {
-        newSlots[i] = match.id;
-        placed.add(match.id);
+    // Priority-based fill: each pass tries the nth suggested position for every unfilled slot.
+    // This ensures each slot first tries its primary/best-fit position before falling back to
+    // alternatives, preventing e.g. a CMF being claimed by a wide slot before the CMF slots run.
+    const maxPriority = Math.max(...formation.slots.map(s => s.suggestedPositions.length));
+    for (let priority = 0; priority < maxPriority; priority++) {
+      for (let i = 0; i < formation.slots.length; i++) {
+        if (newSlots[i] !== null) continue; // already filled
+        const slot = formation.slots[i];
+        if (priority >= slot.suggestedPositions.length) continue;
+        const targetPos = slot.suggestedPositions[priority];
+        // Among unplaced starters matching this priority position, pick highest rated
+        const candidates = starters.filter(p => !placed.has(p.id) && p.position === targetPos);
+        if (candidates.length === 0) continue;
+        const best = candidates.reduce((a, b) => (b.rating > a.rating ? b : a));
+        newSlots[i] = best.id;
+        placed.add(best.id);
       }
     }
 
-    // Pass 2: fill remaining empty slots with unplaced starters
-    const unplaced = starters.filter(p => !placed.has(p.id));
+    // Fill any remaining empty slots with unplaced starters (highest rated first)
+    const unplaced = starters
+      .filter(p => !placed.has(p.id))
+      .sort((a, b) => b.rating - a.rating);
     let unplacedIdx = 0;
     for (let i = 0; i < newSlots.length; i++) {
       if (newSlots[i] === null && unplacedIdx < unplaced.length) {

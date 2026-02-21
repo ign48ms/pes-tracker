@@ -166,10 +166,10 @@ export const FORMATIONS: Record<string, Formation> = {
       { x: 35, y: 12, suggestedPositions: ["CF", "SS"], label: "CF" },
       { x: 65, y: 12, suggestedPositions: ["CF", "SS"], label: "SS" },
       // Midfield
-      { x: 15, y: 42, suggestedPositions: ["LWF", "CMF", "AMF"], label: "LWF" },
-      { x: 38, y: 44, suggestedPositions: ["CMF", "AMF", "DMF"], label: "CMF" },
-      { x: 62, y: 44, suggestedPositions: ["CMF", "AMF", "DMF"], label: "CMF" },
-      { x: 85, y: 42, suggestedPositions: ["RWF", "CMF", "AMF"], label: "RWF" },
+      { x: 15, y: 42, suggestedPositions: ["LWF", "LMF", "CMF", "AMF"], label: "LWF" },
+      { x: 38, y: 44, suggestedPositions: ["CMF", "DMF", "AMF"], label: "CMF" },
+      { x: 62, y: 44, suggestedPositions: ["CMF", "DMF", "AMF"], label: "CMF" },
+      { x: 85, y: 42, suggestedPositions: ["RWF", "RMF", "CMF", "AMF"], label: "RWF" },
       // Defence
       { x: 15, y: 68, suggestedPositions: ["LB"], label: "LB" },
       { x: 38, y: 70, suggestedPositions: ["CB"], label: "CB" },

@@ -1,10 +1,10 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import type { Player, Match, Season, Competition, PlayerStats, Team } from "./types";
-import { getPlayers, savePlayers, getMatches, saveMatches, getSeasons, saveSeasons, getCompetitions, saveCompetitions, getTeamName, saveTeamName, ensureDefaultSeason, clearAllData, importAllData as storageImportAll, getArchivedTeams, saveArchivedTeams, getActiveTeamMeta, createNewTeam as storageCreateNewTeam, updateArchivedTeam, deleteArchivedTeam } from "./storage";
+import { getPlayers, savePlayers, getMatches, saveMatches, getSeasons, saveSeasons, getCompetitions, saveCompetitions, getTeamName, saveTeamName, ensureDefaultSeason, clearAllData, importAllData as storageImportAll, getArchivedTeams, saveArchivedTeams, getActiveTeamMeta, createNewTeam as storageCreateNewTeam, updateArchivedTeam, deleteArchivedTeam, getDefaultFormation, saveDefaultFormation } from "./storage";
 import type { ActiveTeamMeta } from "./storage";
 import { derivePlayerStats } from "./stats";
-import { DEFAULT_TEAM_NAME } from "./constants";
+import { DEFAULT_TEAM_NAME, DEFAULT_FORMATION } from "./constants";
 
 // ─── Context shape ───
 interface AppContextValue {
@@ -54,6 +54,10 @@ interface AppContextValue {
   // Team name (for active team only)
   setTeamName: (name: string) => void;
 
+  // Preferences
+  defaultFormation: string;
+  setDefaultFormation: (formation: string) => void;
+
   // Bulk operations
   importData: (data: import("./types").ExportData) => void;
   clearAll: () => void;
@@ -77,6 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── Global state ───
   const [competitions, _setCompetitions] = useState<Competition[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [defaultFormation, _setDefaultFormation] = useState<string>(DEFAULT_FORMATION);
 
   // Initialize from localStorage
   useEffect(() => {
@@ -89,6 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     _setActiveTeamMeta(meta);
     _setArchivedTeams(getArchivedTeams());
     _setCompetitions(getCompetitions());
+    _setDefaultFormation(getDefaultFormation());
     setViewingTeamId(meta.id);
     setIsLoaded(true);
   }, []);
@@ -104,6 +110,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       _setActiveTeamMeta(meta);
       _setArchivedTeams(getArchivedTeams());
       _setCompetitions(getCompetitions());
+      _setDefaultFormation(getDefaultFormation());
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
@@ -237,6 +244,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveTeamName(name);
   }, [isViewingActiveTeam]);
 
+  const setDefaultFormationFn = useCallback((formation: string) => {
+    _setDefaultFormation(formation);
+    saveDefaultFormation(formation);
+  }, []);
+
   // ─── Multi-team actions ───
   const createNewTeam = useCallback((name: string, firstSeasonName?: string) => {
     const newMeta = storageCreateNewTeam(name, firstSeasonName);
@@ -308,6 +320,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSeasons,
     setCompetitions, addCompetition,
     setTeamName: setTeamNameFn,
+    defaultFormation,
+    setDefaultFormation: setDefaultFormationFn,
     importData, clearAll,
   }), [
     players, matches, seasons, competitions, teamName, isLoaded,
@@ -319,6 +333,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSeasons,
     setCompetitions, addCompetition,
     setTeamNameFn,
+    defaultFormation, setDefaultFormationFn,
     importData, clearAll,
   ]);
 

@@ -23,7 +23,6 @@ export default function DataManager() {
   const isValidMatch = (m: unknown): m is Match =>
     typeof m === "object" && m !== null &&
     "id" in m && "myScore" in m && "opScore" in m && "opponent" in m &&
-    typeof (m as Record<string, unknown>).id === "number" &&
     typeof (m as Record<string, unknown>).opponent === "string";
 
   const handleExport = () => {
@@ -91,17 +90,11 @@ export default function DataManager() {
 
     setModal({
       title: "Confirm Import",
-      message: `This will REPLACE all current data with:\n${importPreview.players.length} players, ${importPreview.matches.length} matches, ${importPreview.seasons?.length || 0} seasons, ${importPreview.competitions?.length || 0} competitions.${importPreview.teamName ? `\nTeam name: ${importPreview.teamName}` : ""}\n\nThis cannot be undone.`,
+      message: `This will REPLACE all current data with:\n${importPreview.players.length} players, ${importPreview.matches.length} matches, ${importPreview.seasons?.length || 0} seasons, ${importPreview.competitions?.length || 0} competitions.${importPreview.archivedTeams?.length ? `\n+${importPreview.archivedTeams.length} archived team(s)` : ""}${importPreview.teamName ? `\nTeam name: ${importPreview.teamName}` : ""}\n\nThis cannot be undone.`,
       type: "danger",
       confirmText: "Import & Replace",
       onConfirm: () => {
-        ctxImport(
-          importPreview.players || [],
-          importPreview.matches || [],
-          importPreview.seasons || [],
-          importPreview.competitions || [],
-          importPreview.teamName
-        );
+        ctxImport(importPreview);
         setImportPreview(null);
         setImportError(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -194,6 +187,12 @@ export default function DataManager() {
                 <p className="text-lg font-black text-slate-200">{importPreview.competitions?.length || 0}</p>
                 <p className="text-[10px] text-slate-500 uppercase font-bold">Competitions</p>
               </div>
+              {(importPreview.archivedTeams?.length ?? 0) > 0 && (
+                <div className="col-span-2">
+                  <p className="text-lg font-black text-amber-400">{importPreview.archivedTeams!.length}</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold">Archived Teams</p>
+                </div>
+              )}
             </div>
             <p className="text-[10px] text-slate-500 mb-3">
               Exported: {importPreview.exportDate ? new Date(importPreview.exportDate).toLocaleString() : "Unknown"}

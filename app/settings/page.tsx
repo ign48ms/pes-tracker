@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import SeasonManager from "../components/SeasonManager";
+import TeamManager from "../components/TeamManager";
 const DataManager = dynamic(() => import("../components/DataManager"), { ssr: false });
 import { useApp } from "../lib/AppContext";
 
@@ -63,6 +64,15 @@ export default function SettingsPage() {
             Season Management
           </h2>
           <SeasonManager />
+        </section>
+
+        {/* Team Management */}
+        <section className="mb-8">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-amber-500 rounded-full"></span>
+            Team Management
+          </h2>
+          <TeamManager />
         </section>
 
         {/* Data Management */}

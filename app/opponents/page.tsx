@@ -6,6 +6,7 @@ import { groupMatchesByOpponent, computeRecord, filterMatchesByComp, getMatchCom
 import type { SeasonFilter } from "../lib/types";
 import Pagination from "../components/Pagination";
 import MatchFilters from "../components/MatchFilters";
+import ArchivedTeamBanner from "../components/ArchivedTeamBanner";
 
 type SortKey = "name" | "played" | "wins" | "losses" | "draws" | "gf" | "ga" | "gd";
 type SortDir = "asc" | "desc";
@@ -90,7 +91,9 @@ export default function OpponentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 p-8">
+    <>
+      <ArchivedTeamBanner />
+      <main className="min-h-screen bg-slate-900 text-slate-100 p-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold text-blue-400 tracking-tight mb-6">Opponents</h1>
 
@@ -191,5 +194,6 @@ export default function OpponentsPage() {
         )}
       </div>
     </main>
+    </>
   );
 }

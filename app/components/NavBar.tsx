@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useApp } from "../lib/AppContext";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -14,14 +15,28 @@ const NAV_LINKS = [
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { teamName, isViewingActiveTeam } = useApp();
 
   return (
     <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-6 sm:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-blue-500 font-black tracking-tighter text-xl hover:text-blue-400 transition">
-            MyPES
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-blue-500 font-black tracking-tighter text-xl hover:text-blue-400 transition">
+              MyPES
+            </Link>
+            {teamName && (
+              <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border transition ${
+                isViewingActiveTeam
+                  ? "text-green-400 bg-green-900/20 border-green-800/40"
+                  : "text-amber-400 bg-amber-900/20 border-amber-700/40"
+              }`}>
+                {!isViewingActiveTeam && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+                {teamName}
+                {!isViewingActiveTeam && <span className="text-amber-500/70 font-normal">archived</span>}
+              </span>
+            )}
+          </div>
 
           {/* Desktop nav */}
           <div className="hidden sm:flex gap-6 text-sm font-bold uppercase tracking-widest">

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import CustomModal from '../components/CustomModal';
 import PlayerSearchSelect from '../components/PlayerSearchSelect';
 import dynamic from 'next/dynamic';
+import ArchivedTeamBanner from '../components/ArchivedTeamBanner';
 const FormationPitch = dynamic(() => import('../components/FormationPitch'), { ssr: false });
 import BenchRow from '../components/BenchRow';
 import Pagination from '../components/Pagination';
@@ -17,7 +18,7 @@ import MatchFilters from '../components/MatchFilters';
 
 // --- Main Page ---
 export default function MatchPage() {
-  const { players, matches, seasons, competitions, activeSeason, isLoaded, setMatches, setCompetitions, addMatch: ctxAddMatch, deleteMatch: ctxDeleteMatch, updateMatch: ctxUpdateMatch, addCompetition: ctxAddCompetition } = useApp();
+  const { players, matches, seasons, competitions, activeSeason, isLoaded, isViewingActiveTeam, setMatches, setCompetitions, addMatch: ctxAddMatch, deleteMatch: ctxDeleteMatch, updateMatch: ctxUpdateMatch, addCompetition: ctxAddCompetition } = useApp();
   
   // Form Inputs
   const [opponent, setOpponent] = useState("");
@@ -498,7 +499,9 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 p-8 pb-32">
+    <>
+      <ArchivedTeamBanner />
+      <main className="min-h-screen bg-slate-900 text-slate-100 p-8 pb-32">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-blue-400 tracking-tight">
@@ -513,7 +516,7 @@ export default function MatchPage() {
                 Cancel Edit
               </button>
             )}
-            {matches.length > 0 && !editingMatchId && (
+            {matches.length > 0 && !editingMatchId && isViewingActiveTeam && (
               <button 
                 onClick={clearAllMatches}
                 className="text-xs bg-red-900/30 text-red-400 border border-red-800/50 px-3 py-1 rounded hover:bg-red-800/50 transition"
@@ -525,7 +528,7 @@ export default function MatchPage() {
         </div>
 
         {/* MATCH ENTRY FORM */}
-        <form onSubmit={saveMatch} className="space-y-6 mb-12">
+        {isViewingActiveTeam && <form onSubmit={saveMatch} className="space-y-6 mb-12">
           
           {/* Scoreboard: Competition | Opponent | Score */}
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
@@ -815,7 +818,7 @@ export default function MatchPage() {
           >
             {editingMatchId ? "UPDATE MATCH" : "CONFIRM MATCH RESULT"}
           </button>
-        </form>
+        </form>}
 
         {/* MATCH HISTORY TABLE */}
         {matches.length > 0 && (
@@ -873,7 +876,7 @@ export default function MatchPage() {
                         <td className="p-4 text-center text-green-500 text-xs font-medium max-w-[150px] truncate hidden md:table-cell">{getGoalSummary(match, playerMap)}</td>
                         <td className="p-4 text-center text-yellow-500 text-xs font-medium max-w-[150px] truncate hidden md:table-cell">{getAssistSummary(match, playerMap)}</td>
                         <td className="p-4">
-                          <div className="flex justify-center gap-1">
+                          {isViewingActiveTeam && <div className="flex justify-center gap-1">
                             <button 
                               onClick={() => startEditMatch(match.id)}
                               className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-500/10 hover:text-blue-400 transition-all border border-transparent hover:border-blue-500/20 text-xs"
@@ -890,7 +893,7 @@ export default function MatchPage() {
                             >
                               ✕
                             </button>
-                          </div>
+                          </div>}
                         </td>
                       </tr>
                     );
@@ -919,5 +922,6 @@ export default function MatchPage() {
       </div>
       <CustomModal config={modal} onClose={() => setModal(null)} />
     </main>
+    </>
   );
 }

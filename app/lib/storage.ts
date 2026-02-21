@@ -1,5 +1,5 @@
 // ─── localStorage utilities with typed helpers and migration ───
-import type { Player, Match, Season, Competition, ExportData } from "./types";
+import type { Player, Match, Season, Competition, ExportData, Team } from "./types";
 import { DEFAULT_COMPETITIONS, DEFAULT_COMPETITION_OBJECTS, FRIENDLY_DEFAULT, DEFAULT_TEAM_NAME } from "./constants";
 
 const KEYS = {
@@ -8,10 +8,14 @@ const KEYS = {
   competitions: "pes-competitions",
   seasons: "pes-seasons",
   teamName: "pes-team-name",
+  /** Array of archived (non-active) Team snapshots */
+  archivedTeams: "pes-archived-teams",
+  /** Active team metadata: { id: string, createdAt: number } */
+  activeTeamMeta: "pes-active-team",
 } as const;
 
 const MIGRATION_KEY = "pes-migration-version";
-const CURRENT_MIGRATION = 4;
+const CURRENT_MIGRATION = 5;
 let _migrated = false;
 
 // ─── Safe JSON parse ───
@@ -189,6 +193,24 @@ function ensureMigrations(): void {
     localStorage.setItem(KEYS.players, JSON.stringify(migratedPlayers));
   }
 
+  // Migration 5: assign a stable UUID + createdAt to the active team; init archived teams list
+  if (version < 5) {
+    if (!localStorage.getItem(KEYS.activeTeamMeta)) {
+      // Estimate team age from the oldest match
+      const existingMatches = safeParse<Record<string, unknown>[]>(KEYS.matches, []);
+      let oldestTs = Date.now();
+      for (const m of existingMatches) {
+        const t = typeof m.createdAt === "number" ? m.createdAt : 0;
+        if (t > 0 && t < oldestTs) oldestTs = t;
+      }
+      const meta = { id: crypto.randomUUID(), createdAt: oldestTs };
+      safeWriteNow(KEYS.activeTeamMeta, JSON.stringify(meta));
+    }
+    if (!localStorage.getItem(KEYS.archivedTeams)) {
+      safeWriteNow(KEYS.archivedTeams, JSON.stringify([]));
+    }
+  }
+
   localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION.toString());
 }
 
@@ -297,6 +319,64 @@ export function getActiveSeason(): Season | null {
   return seasons.find(s => s.isActive) || seasons[0] || null;
 }
 
+// ─── Active team metadata ───
+export interface ActiveTeamMeta { id: string; createdAt: number; }
+
+export function getActiveTeamMeta(): ActiveTeamMeta {
+  ensureMigrations();
+  const raw = safeParse<ActiveTeamMeta | null>(KEYS.activeTeamMeta, null);
+  if (raw && raw.id) return raw;
+  // Fallback: generate and persist
+  const meta: ActiveTeamMeta = { id: crypto.randomUUID(), createdAt: Date.now() };
+  safeWriteNow(KEYS.activeTeamMeta, JSON.stringify(meta));
+  return meta;
+}
+
+// ─── Archived teams ───
+export function getArchivedTeams(): Team[] {
+  ensureMigrations();
+  return safeParse<Team[]>(KEYS.archivedTeams, []);
+}
+
+export function saveArchivedTeams(teams: Team[]): void {
+  safeWrite(KEYS.archivedTeams, JSON.stringify(teams));
+}
+
+/**
+ * Archives the current active team and starts a fresh one.
+ * Flushes all pending debounced writes before snapshotting.
+ */
+export function createNewTeam(newName: string, firstSeasonName: string = "Season 1"): ActiveTeamMeta {
+  // Flush pending writes so snapshot captures latest data
+  for (const [, timer] of _debounceTimers) clearTimeout(timer);
+  _debounceTimers.clear();
+
+  const meta = getActiveTeamMeta();
+  const snapshot: Team = {
+    id: meta.id,
+    name: localStorage.getItem(KEYS.teamName) || DEFAULT_TEAM_NAME,
+    createdAt: meta.createdAt,
+    players: safeParse<Player[]>(KEYS.players, []),
+    matches: safeParse<Match[]>(KEYS.matches, []),
+    seasons: safeParse<Season[]>(KEYS.seasons, []),
+  };
+
+  // Archive current team
+  const archived = safeParse<Team[]>(KEYS.archivedTeams, []);
+  safeWriteNow(KEYS.archivedTeams, JSON.stringify([...archived, snapshot]));
+
+  // Set up fresh active team
+  const newMeta: ActiveTeamMeta = { id: crypto.randomUUID(), createdAt: Date.now() };
+  const defaultSeason: Season = { id: 1, name: firstSeasonName || "Season 1", isActive: true };
+  safeWriteNow(KEYS.activeTeamMeta, JSON.stringify(newMeta));
+  safeWriteNow(KEYS.teamName, newName);
+  safeWriteNow(KEYS.players, JSON.stringify([]));
+  safeWriteNow(KEYS.matches, JSON.stringify([]));
+  safeWriteNow(KEYS.seasons, JSON.stringify([defaultSeason]));
+
+  return newMeta;
+}
+
 export function ensureDefaultSeason(): Season {
   const seasons = getSeasons();
   if (seasons.length === 0) {
@@ -310,33 +390,53 @@ export function ensureDefaultSeason(): Season {
 
 // ─── Full data export/import ───
 export function exportAllData(): ExportData {
+  const meta = getActiveTeamMeta();
   return {
-    version: 2,
+    version: 3,
     exportDate: new Date().toISOString(),
+    // Active team fields (v2 compat)
     players: getPlayers(),
     matches: getMatches(),
     competitions: getCompetitions(),
     seasons: getSeasons(),
     teamName: getTeamName(),
+    // v3 multi-team
+    archivedTeams: getArchivedTeams(),
+    activeTeamId: meta.id,
   };
 }
 
 export function importAllData(data: ExportData): void {
+  // Flush pending writes before overwriting
+  for (const [, timer] of _debounceTimers) clearTimeout(timer);
+  _debounceTimers.clear();
+
   // Use immediate writes so all data is in localStorage before ensureMigrations() runs
   if (data.players) safeWriteNow(KEYS.players, JSON.stringify(data.players));
   if (data.matches) safeWriteNow(KEYS.matches, JSON.stringify(data.matches));
   if (data.competitions) {
     // Handle legacy string[] format from old backups at runtime (narrowed in types but old files exist)
     const rawComps = data.competitions as unknown as Competition[] | string[];
-    if (Array.isArray(rawComps) && rawComps.length > 0 && typeof rawComps[0] === "string") {
-      // Old string[] format — will be converted by migration 4a
-      safeWriteNow(KEYS.competitions, JSON.stringify(rawComps));
-    } else {
-      safeWriteNow(KEYS.competitions, JSON.stringify(rawComps));
-    }
+    safeWriteNow(KEYS.competitions, JSON.stringify(rawComps));
   }
   if (data.seasons) safeWriteNow(KEYS.seasons, JSON.stringify(data.seasons));
   if (data.teamName) safeWriteNow(KEYS.teamName, data.teamName);
+
+  // v3: restore multi-team data
+  if (data.archivedTeams) {
+    safeWriteNow(KEYS.archivedTeams, JSON.stringify(data.archivedTeams));
+  } else {
+    safeWriteNow(KEYS.archivedTeams, JSON.stringify([]));
+  }
+  if (data.activeTeamId) {
+    const meta: ActiveTeamMeta = { id: data.activeTeamId, createdAt: Date.now() };
+    safeWriteNow(KEYS.activeTeamMeta, JSON.stringify(meta));
+  } else {
+    // Legacy import: generate fresh team metadata
+    const meta: ActiveTeamMeta = { id: crypto.randomUUID(), createdAt: Date.now() };
+    safeWriteNow(KEYS.activeTeamMeta, JSON.stringify(meta));
+  }
+
   // Re-run migrations on imported data
   _migrated = false;
   localStorage.removeItem(MIGRATION_KEY);
@@ -350,4 +450,19 @@ export function clearAllData(): void {
   Object.values(KEYS).forEach(key => localStorage.removeItem(key));
   localStorage.removeItem(MIGRATION_KEY);
   _migrated = false;
+}
+
+/** Update a single archived team's record (e.g. rename). */
+export function updateArchivedTeam(id: string, updates: Partial<Pick<Team, "name">>): void {
+  const teams = getArchivedTeams();
+  const idx = teams.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  teams[idx] = { ...teams[idx], ...updates };
+  saveArchivedTeams(teams);
+}
+
+/** Delete an archived team permanently. */
+export function deleteArchivedTeam(id: string): void {
+  const teams = getArchivedTeams().filter(t => t.id !== id);
+  saveArchivedTeams(teams);
 }

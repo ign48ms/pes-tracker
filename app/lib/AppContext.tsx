@@ -1,13 +1,14 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
-import type { Player, Match, Season, Competition, PlayerStats } from "./types";
-import { getPlayers, savePlayers, getMatches, saveMatches, getSeasons, saveSeasons, getCompetitions, saveCompetitions, getTeamName, saveTeamName, ensureDefaultSeason, clearAllData, importAllData as storageImportAll } from "./storage";
+import type { Player, Match, Season, Competition, PlayerStats, Team } from "./types";
+import { getPlayers, savePlayers, getMatches, saveMatches, getSeasons, saveSeasons, getCompetitions, saveCompetitions, getTeamName, saveTeamName, ensureDefaultSeason, clearAllData, importAllData as storageImportAll, getArchivedTeams, saveArchivedTeams, getActiveTeamMeta, createNewTeam as storageCreateNewTeam, updateArchivedTeam, deleteArchivedTeam } from "./storage";
+import type { ActiveTeamMeta } from "./storage";
 import { derivePlayerStats } from "./stats";
 import { DEFAULT_TEAM_NAME } from "./constants";
 
 // ─── Context shape ───
 interface AppContextValue {
-  // State
+  // Data — reflects the currently *viewed* team (active or archived)
   players: Player[];
   matches: Match[];
   seasons: Season[];
@@ -19,7 +20,19 @@ interface AppContextValue {
   activeSeason: Season | null;
   playerStats: Map<number, PlayerStats>;
 
-  // Player mutations
+  // ─── Multi-team ───
+  activeTeamMeta: ActiveTeamMeta;
+  archivedTeams: Team[];
+  /** ID of the team currently being browsed (may differ from activeTeamMeta.id) */
+  viewingTeamId: string;
+  /** true when browsing the live active team */
+  isViewingActiveTeam: boolean;
+  createNewTeam: (name: string, firstSeasonName?: string) => void;
+  switchViewingTeam: (id: string) => void;
+  renameArchivedTeam: (id: string, name: string) => void;
+  removeArchivedTeam: (id: string) => void;
+
+  // Player mutations (no-op when viewing archived team)
   setPlayers: (update: Player[] | ((prev: Player[]) => Player[])) => void;
   addPlayer: (player: Player) => void;
   updatePlayer: (id: number, updates: Partial<Player>) => void;
@@ -34,47 +47,63 @@ interface AppContextValue {
   // Season mutations
   setSeasons: (update: Season[] | ((prev: Season[]) => Season[])) => void;
 
-  // Competition mutations
+  // Competition mutations (global — always writable)
   setCompetitions: (update: Competition[] | ((prev: Competition[]) => Competition[])) => void;
   addCompetition: (comp: Competition) => void;
 
-  // Team name
+  // Team name (for active team only)
   setTeamName: (name: string) => void;
 
   // Bulk operations
-  importData: (players: Player[], matches: Match[], seasons: Season[], competitions: Competition[], teamName?: string) => void;
+  importData: (data: import("./types").ExportData) => void;
   clearAll: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [players, _setPlayers] = useState<Player[]>([]);
-  const [matches, _setMatches] = useState<Match[]>([]);
-  const [seasons, _setSeasons] = useState<Season[]>([]);
+  // ─── Active team live state ───
+  const [_activePlayers, _setActivePlayers] = useState<Player[]>([]);
+  const [_activeMatches, _setActiveMatches] = useState<Match[]>([]);
+  const [_activeSeasons, _setActiveSeasons] = useState<Season[]>([]);
+  const [_activeTeamName, _setActiveTeamName] = useState(DEFAULT_TEAM_NAME);
+  const [_activeTeamMeta, _setActiveTeamMeta] = useState<ActiveTeamMeta>({ id: "", createdAt: 0 });
+
+  // ─── Multi-team ───
+  const [archivedTeams, _setArchivedTeams] = useState<Team[]>([]);
+  /** Client-only: which team's data the UI is currently showing */
+  const [viewingTeamId, setViewingTeamId] = useState<string>("");
+
+  // ─── Global state ───
   const [competitions, _setCompetitions] = useState<Competition[]>([]);
-  const [teamName, _setTeamName] = useState(DEFAULT_TEAM_NAME);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Initialize from localStorage
   useEffect(() => {
     ensureDefaultSeason();
-    _setPlayers(getPlayers());
-    _setMatches(getMatches());
-    _setSeasons(getSeasons());
+    _setActivePlayers(getPlayers());
+    _setActiveMatches(getMatches());
+    _setActiveSeasons(getSeasons());
+    _setActiveTeamName(getTeamName());
+    const meta = getActiveTeamMeta();
+    _setActiveTeamMeta(meta);
+    _setArchivedTeams(getArchivedTeams());
     _setCompetitions(getCompetitions());
-    _setTeamName(getTeamName());
+    setViewingTeamId(meta.id);
     setIsLoaded(true);
   }, []);
 
   // Cross-tab sync
   useEffect(() => {
     const handler = () => {
-      _setPlayers(getPlayers());
-      _setMatches(getMatches());
-      _setSeasons(getSeasons());
+      _setActivePlayers(getPlayers());
+      _setActiveMatches(getMatches());
+      _setActiveSeasons(getSeasons());
+      _setActiveTeamName(getTeamName());
+      const meta = getActiveTeamMeta();
+      _setActiveTeamMeta(meta);
+      _setArchivedTeams(getArchivedTeams());
       _setCompetitions(getCompetitions());
-      _setTeamName(getTeamName());
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
@@ -90,42 +119,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("pes-storage-error", handler);
   }, []);
 
+  // ─── Viewing team resolution ───
+  const isViewingActiveTeam = useMemo(
+    () => !viewingTeamId || viewingTeamId === _activeTeamMeta.id,
+    [viewingTeamId, _activeTeamMeta.id]
+  );
+
+  // When browsing an archived team, pull its snapshot
+  const _viewingArchivedTeam = useMemo(
+    () => isViewingActiveTeam ? null : archivedTeams.find(t => t.id === viewingTeamId) || null,
+    [isViewingActiveTeam, archivedTeams, viewingTeamId]
+  );
+
+  // Public data — reflects whichever team is being viewed
+  const players  = _viewingArchivedTeam ? _viewingArchivedTeam.players  : _activePlayers;
+  const matches  = _viewingArchivedTeam ? _viewingArchivedTeam.matches  : _activeMatches;
+  const seasons  = _viewingArchivedTeam ? _viewingArchivedTeam.seasons  : _activeSeasons;
+  const teamName = _viewingArchivedTeam ? _viewingArchivedTeam.name     : _activeTeamName;
+
   // ─── Derived state ───
   const activeSeason = useMemo(
     () => seasons.find(s => s.isActive) || seasons[0] || null,
     [seasons]
   );
 
-  // All-time stats for all players (derived from ALL matches)
   const playerStats = useMemo(
     () => derivePlayerStats(players, matches),
     [players, matches]
   );
 
-  // ─── Persisting setters ───
+  // ─── Persisting setters (guard: no-op when viewing archived) ───
   const setPlayers = useCallback((update: Player[] | ((prev: Player[]) => Player[])) => {
-    _setPlayers(prev => {
+    if (!isViewingActiveTeam) return;
+    _setActivePlayers(prev => {
       const next = typeof update === "function" ? update(prev) : update;
       savePlayers(next);
       return next;
     });
-  }, []);
+  }, [isViewingActiveTeam]);
 
   const setMatches = useCallback((update: Match[] | ((prev: Match[]) => Match[])) => {
-    _setMatches(prev => {
+    if (!isViewingActiveTeam) return;
+    _setActiveMatches(prev => {
       const next = typeof update === "function" ? update(prev) : update;
       saveMatches(next);
       return next;
     });
-  }, []);
+  }, [isViewingActiveTeam]);
 
   const setSeasons = useCallback((update: Season[] | ((prev: Season[]) => Season[])) => {
-    _setSeasons(prev => {
+    if (!isViewingActiveTeam) return;
+    _setActiveSeasons(prev => {
       const next = typeof update === "function" ? update(prev) : update;
       saveSeasons(next);
       return next;
     });
-  }, []);
+  }, [isViewingActiveTeam]);
 
   const setCompetitions = useCallback((update: Competition[] | ((prev: Competition[]) => Competition[])) => {
     _setCompetitions(prev => {
@@ -146,7 +195,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deletePlayer = useCallback((id: number) => {
     setPlayers(prev => prev.filter(p => p.id !== id));
-    // Clean up goal events and appearance lists referencing this player
     const idStr = id.toString();
     setMatches(prev => prev.map(m => {
       const hasGoalRef = m.goals && m.goals.length > 0 && m.goals.some(g => g.scorerId === idStr || g.assisterId === idStr);
@@ -184,45 +232,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [setCompetitions]);
 
   const setTeamNameFn = useCallback((name: string) => {
-    _setTeamName(name);
+    if (!isViewingActiveTeam) return;
+    _setActiveTeamName(name);
     saveTeamName(name);
+  }, [isViewingActiveTeam]);
+
+  // ─── Multi-team actions ───
+  const createNewTeam = useCallback((name: string, firstSeasonName?: string) => {
+    const newMeta = storageCreateNewTeam(name, firstSeasonName);
+    // Reload everything from storage
+    _setActivePlayers(getPlayers());
+    _setActiveMatches(getMatches());
+    _setActiveSeasons(getSeasons());
+    _setActiveTeamName(getTeamName());
+    _setActiveTeamMeta(newMeta);
+    _setArchivedTeams(getArchivedTeams());
+    setViewingTeamId(newMeta.id);
   }, []);
 
-  const importData = useCallback((newPlayers: Player[], newMatches: Match[], newSeasons: Season[], newComps: Competition[], newTeamName?: string) => {
-    // Use storage import which resets migration flags and re-runs migrations
-    storageImportAll({
-      version: 2,
-      exportDate: new Date().toISOString(),
-      players: newPlayers,
-      matches: newMatches,
-      seasons: newSeasons,
-      competitions: newComps,
-      teamName: newTeamName,
-    });
-    // Reload migrated data from storage
-    _setPlayers(getPlayers());
-    _setMatches(getMatches());
-    _setSeasons(getSeasons());
+  const switchViewingTeam = useCallback((id: string) => {
+    setViewingTeamId(id);
+  }, []);
+
+  const renameArchivedTeam = useCallback((id: string, name: string) => {
+    updateArchivedTeam(id, { name });
+    _setArchivedTeams(getArchivedTeams());
+  }, []);
+
+  const removeArchivedTeam = useCallback((id: string) => {
+    deleteArchivedTeam(id);
+    _setArchivedTeams(getArchivedTeams());
+  }, []);
+
+  // ─── Bulk operations ───
+  const importData = useCallback((data: import("./types").ExportData) => {
+    storageImportAll(data);
+    const meta = getActiveTeamMeta();
+    _setActivePlayers(getPlayers());
+    _setActiveMatches(getMatches());
+    _setActiveSeasons(getSeasons());
+    _setActiveTeamName(getTeamName());
+    _setActiveTeamMeta(meta);
+    _setArchivedTeams(getArchivedTeams());
     _setCompetitions(getCompetitions());
-    _setTeamName(getTeamName());
+    setViewingTeamId(meta.id);
   }, []);
 
   const clearAll = useCallback(() => {
-    // Clear all data and reset migration flags so defaults are reseeded
     clearAllData();
-    // Re-run initialization: ensures default season and competitions are created
     ensureDefaultSeason();
-    // Reload from storage (migrations will reseed defaults)
-    _setPlayers(getPlayers());
-    _setMatches(getMatches());
-    _setSeasons(getSeasons());
+    const meta = getActiveTeamMeta();
+    _setActivePlayers(getPlayers());
+    _setActiveMatches(getMatches());
+    _setActiveSeasons(getSeasons());
+    _setActiveTeamName(getTeamName());
+    _setActiveTeamMeta(meta);
+    _setArchivedTeams(getArchivedTeams());
     _setCompetitions(getCompetitions());
-    _setTeamName(getTeamName());
+    setViewingTeamId(meta.id);
   }, []);
 
   const value = useMemo<AppContextValue>(() => ({
     players, matches, seasons, competitions, teamName, isLoaded,
     activeSeason, playerStats,
+    activeTeamMeta: _activeTeamMeta,
+    archivedTeams,
+    viewingTeamId,
+    isViewingActiveTeam,
+    createNewTeam,
+    switchViewingTeam,
+    renameArchivedTeam,
+    removeArchivedTeam,
     setPlayers, addPlayer, updatePlayer, deletePlayer,
     setMatches, addMatch, deleteMatch, updateMatch,
     setSeasons,
@@ -232,6 +312,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }), [
     players, matches, seasons, competitions, teamName, isLoaded,
     activeSeason, playerStats,
+    _activeTeamMeta, archivedTeams, viewingTeamId, isViewingActiveTeam,
+    createNewTeam, switchViewingTeam, renameArchivedTeam, removeArchivedTeam,
     setPlayers, addPlayer, updatePlayer, deletePlayer,
     setMatches, addMatch, deleteMatch, updateMatch,
     setSeasons,

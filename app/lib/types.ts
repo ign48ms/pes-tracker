@@ -124,6 +124,17 @@ export type SortDir = "asc" | "desc";
 /** Season filter value: 'active' = current active season, 'all' = all seasons, number string = specific season ID */
 export type SeasonFilter = "active" | "all" | (string & {});
 
+// ─── Team (multi-team support) ───
+/** An archived team snapshot. The active team's live data lives in the individual localStorage keys. */
+export interface Team {
+  id: string;
+  name: string;
+  createdAt: number;
+  players: Player[];
+  matches: Match[];
+  seasons: Season[];
+}
+
 // Data export format
 export interface ExportData {
   version: number;
@@ -137,4 +148,8 @@ export interface ExportData {
   competitions: Competition[];
   seasons: Season[];
   teamName?: string;
+  /** v3+: all archived teams */
+  archivedTeams?: Team[];
+  /** v3+: active team id */
+  activeTeamId?: string;
 }

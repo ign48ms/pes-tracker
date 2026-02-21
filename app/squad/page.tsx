@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import CustomModal from '../components/CustomModal';
 import Pagination from '../components/Pagination';
+import ArchivedTeamBanner from '../components/ArchivedTeamBanner';
 import type { Player, PlayerStatus, ModalConfig, SortKey, SortDir } from '../lib/types';
 import { ALL_POSITIONS, POS_GROUPS, POS_ORDER, getCompColor, getPositionColors, getRatingColors, getStatusColor } from '../lib/constants';
 import { useApp } from '../lib/AppContext';
@@ -11,7 +12,7 @@ import type { SeasonFilter } from '../lib/types';
 
 export default function SquadPage() {
   const router = useRouter();
-  const { players, matches, seasons, activeSeason, isLoaded, setPlayers, setMatches, addPlayer: ctxAddPlayer, deletePlayer: ctxDeletePlayer, updatePlayer: ctxUpdatePlayer } = useApp();
+  const { players, matches, seasons, activeSeason, isLoaded, isViewingActiveTeam, setPlayers, setMatches, addPlayer: ctxAddPlayer, deletePlayer: ctxDeletePlayer, updatePlayer: ctxUpdatePlayer } = useApp();
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [rating, setRating] = useState("");
@@ -223,7 +224,9 @@ export default function SquadPage() {
   }, [activePlayersAll, playerFilteredStats]);
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 p-8">
+    <>
+      <ArchivedTeamBanner />
+      <main className="min-h-screen bg-slate-900 text-slate-100 p-8">
       {!isLoaded ? (
         <div className="max-w-5xl mx-auto">
           <div className="animate-pulse space-y-6">
@@ -236,7 +239,7 @@ export default function SquadPage() {
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-blue-400 tracking-tight">Squad Management</h1>
-          {players.length > 0 && (
+          {players.length > 0 && isViewingActiveTeam && (
             <button 
               onClick={clearAllPlayers}
               className="text-xs bg-red-900/30 text-red-400 border border-red-800/50 px-3 py-1 rounded hover:bg-red-800/50 transition"
@@ -314,7 +317,7 @@ export default function SquadPage() {
         )}
 
         {/* REGISTRATION FORM */}
-        <form onSubmit={addPlayer} className="bg-slate-800 p-6 rounded-lg mb-8 flex flex-wrap gap-4 items-start border border-slate-700 shadow-lg">
+        {isViewingActiveTeam && <form onSubmit={addPlayer} className="bg-slate-800 p-6 rounded-lg mb-8 flex flex-wrap gap-4 items-start border border-slate-700 shadow-lg">
           <div className="flex-1 min-w-[200px]">
             <label htmlFor="squad-name" className="block text-xs font-semibold mb-1 text-slate-500 uppercase">Player Name</label>
             <input 
@@ -377,15 +380,7 @@ export default function SquadPage() {
               Add Player
             </button>
           </div>
-        </form>
-
-        {/* Starter count warning */}
-        {starterCount > 11 && (
-          <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800/50 text-red-400 font-bold text-sm animate-pulse">
-            <span className="text-lg">⚠</span>
-            <span>Too many starters selected: <span className="text-red-300">{starterCount}/11</span> — remove {starterCount - 11} to match a starting XI</span>
-          </div>
-        )}
+        </form>}
 
         {/* Player Search + Position Filter */}
         <div className="flex flex-col gap-2 mb-4">
@@ -584,7 +579,7 @@ export default function SquadPage() {
                       <td className="p-4 text-center font-mono font-bold text-green-500">{getStats(player).goals}</td>
                       <td className="p-4 text-center font-mono font-bold text-yellow-500">{getStats(player).assists}</td>
                       <td className="p-4 px-3">
-                        <div className="flex justify-center gap-1">
+                        {isViewingActiveTeam && <div className="flex justify-center gap-1">
                           <button 
                             onClick={(e) => { e.stopPropagation(); startEdit(player); }}
                             className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-500/10 hover:text-blue-400 transition-all border border-transparent hover:border-blue-500/20 text-xs"
@@ -601,7 +596,7 @@ export default function SquadPage() {
                           >
                             ✕
                           </button>
-                        </div>
+                        </div>}
                       </td>
                     </>
                   )}
@@ -739,7 +734,7 @@ export default function SquadPage() {
                               </span>
                             </td>
                             <td className="p-3">
-                              <div className="flex justify-center gap-1">
+                              {isViewingActiveTeam && <div className="flex justify-center gap-1">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); startEdit(player); }}
                                   className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-500/10 hover:text-blue-400 transition-all border border-transparent hover:border-blue-500/20 text-xs"
@@ -750,7 +745,7 @@ export default function SquadPage() {
                                   className="w-7 h-7 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10 hover:text-red-500 transition-all border border-transparent hover:border-red-500/20 text-xs"
                                   title="Remove Player"
                                 >✕</button>
-                              </div>
+                              </div>}
                             </td>
                           </>
                         )}
@@ -767,5 +762,6 @@ export default function SquadPage() {
       )}
       <CustomModal config={modal} onClose={() => setModal(null)} />
     </main>
+    </>
   );
 }

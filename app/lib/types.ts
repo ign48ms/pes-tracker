@@ -67,6 +67,8 @@ export interface Competition {
   format: CompetitionFormat;
   /** Total knockout rounds for "knockout" format (e.g. 4 = R16→QF→SF→F) */
   knockoutRounds?: number;
+  /** Number of 2-legged playoff matches before the main knockout rounds (e.g. 2 = Playoff Leg 1 + Leg 2) */
+  playoffLegs?: number;
   /** Group stage game count for "group-knockout" */
   groupGames?: number;
   /** Knockout rounds after group stage for "group-knockout" */

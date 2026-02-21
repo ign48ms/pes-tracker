@@ -29,6 +29,7 @@ export default function MatchPage() {
   const [newCompName, setNewCompName] = useState("");
   const [newCompFormat, setNewCompFormat] = useState<CompetitionFormat>("league");
   const [newCompKORounds, setNewCompKORounds] = useState("4");
+  const [newCompPlayoffLegs, setNewCompPlayoffLegs] = useState(false);
   const [newCompGroupGames, setNewCompGroupGames] = useState("6");
   const [newCompGroupKORounds, setNewCompGroupKORounds] = useState("4");
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
@@ -459,6 +460,7 @@ export default function MatchPage() {
     };
     if (newCompFormat === "knockout") {
       newComp.knockoutRounds = Math.max(1, Number(newCompKORounds) || 4);
+      if (newCompPlayoffLegs) newComp.playoffLegs = 2;
     } else if (newCompFormat === "group-knockout") {
       newComp.groupGames = Math.max(1, Number(newCompGroupGames) || 6);
       newComp.groupKnockoutRounds = Math.max(1, Number(newCompGroupKORounds) || 4);
@@ -467,6 +469,7 @@ export default function MatchPage() {
     setCompetition(name);
     setNewCompName("");
     setNewCompFormat("league");
+    setNewCompPlayoffLegs(false);
     setShowNewComp(false);
   };
 
@@ -646,18 +649,29 @@ export default function MatchPage() {
                     ))}
                   </select>
                   {newCompFormat === "knockout" && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Rounds</label>
-                      <input
-                        type="number" min="1" max="10"
-                        value={newCompKORounds}
-                        onChange={e => setNewCompKORounds(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 w-16 text-sm text-center text-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="text-[10px] text-slate-600">
-                        ({Number(newCompKORounds) > 0 ? getKnockoutRoundName(Number(newCompKORounds)) : "..."} → Final)
-                      </span>
-                    </div>
+                    <>
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Rounds</label>
+                        <input
+                          type="number" min="1" max="10"
+                          value={newCompKORounds}
+                          onChange={e => setNewCompKORounds(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 w-16 text-sm text-center text-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <span className="text-[10px] text-slate-600">
+                          ({Number(newCompKORounds) > 0 ? getKnockoutRoundName(Number(newCompKORounds)) : "..."} → Final)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={newCompPlayoffLegs}
+                          onChange={e => setNewCompPlayoffLegs(e.target.checked)}
+                          className="accent-blue-500"
+                        />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">2-legged playoff</span>
+                      </label>
+                    </>
                   )}
                   {newCompFormat === "group-knockout" && (
                     <>

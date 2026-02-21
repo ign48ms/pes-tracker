@@ -259,7 +259,7 @@ export const COMP_FORMAT_LABELS: Record<CompetitionFormat, string> = {
   league: "League",
   knockout: "Knockout",
   "group-knockout": "Group + Knockout",
-  freetext: "Free Text",
+  freetext: "Custom",
 };
 
 // ─── Knockout round naming ───
@@ -294,7 +294,13 @@ export function getNextMatchday(
       return { matchday: `Matchday ${next}`, matchdaySort: next };
     case "knockout": {
       const totalRounds = comp.knockoutRounds || 4;
-      const roundFromEnd = totalRounds - existingMatchCount;
+      const playoff = comp.playoffLegs || 0;
+      if (playoff > 0 && existingMatchCount < playoff) {
+        const legNum = existingMatchCount + 1;
+        return { matchday: `Playoff Leg ${legNum}`, matchdaySort: next };
+      }
+      const koMatchIndex = existingMatchCount - playoff;
+      const roundFromEnd = totalRounds - koMatchIndex;
       if (roundFromEnd < 1) {
         return { matchday: `Match ${next}`, matchdaySort: next };
       }

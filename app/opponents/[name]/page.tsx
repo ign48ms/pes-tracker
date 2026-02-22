@@ -258,7 +258,7 @@ export default function OpponentDetailPage() {
                     <CompBadge competition={match.competition || "Friendly"} colorKey={compColorOverrides.get(match.competition || "Friendly")} />
                   </td>
                   <td className="p-4 text-center">
-                    <ResultBadge myScore={match.myScore} opScore={match.opScore} />
+                    <ResultBadge myScore={match.myScore} opScore={match.opScore} penMyScore={match.penMyScore} penOpScore={match.penOpScore} />
                   </td>
                   <td className="p-4 text-center text-green-500 text-xs font-medium max-w-[150px] truncate hidden sm:table-cell">{getGoalSummary(match, playerMap)}</td>
                   <td className="p-4 text-center text-yellow-500 text-xs font-medium max-w-[150px] truncate hidden sm:table-cell">{getAssistSummary(match, playerMap)}</td>

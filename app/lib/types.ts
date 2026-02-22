@@ -56,6 +56,10 @@ export interface Match {
   formationKey?: string;
   /** Map of formation slot index to player ID */
   pitchSlotMap?: Record<number, number>;
+  /** Penalty shootout score (our team) — only for knockout matches that went to pens */
+  penMyScore?: number;
+  /** Penalty shootout score (opponent) */
+  penOpScore?: number;
 }
 
 // ─── Competition types ───

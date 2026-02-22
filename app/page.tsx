@@ -344,7 +344,7 @@ export default function DashboardPage() {
                     return (
                       <div key={match.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-700/50">
                         <div className="flex items-center gap-3">
-                          <ResultBadge myScore={match.myScore} opScore={match.opScore} className="text-sm" />
+                          <ResultBadge myScore={match.myScore} opScore={match.opScore} penMyScore={match.penMyScore} penOpScore={match.penOpScore} className="text-sm" />
                           <div>
                             <span className="font-semibold text-sm text-slate-200">{match.opponent}</span>
                           </div>

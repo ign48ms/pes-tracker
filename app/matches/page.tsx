@@ -35,6 +35,11 @@ export default function MatchPage() {
   const [newCompGroupKORounds, setNewCompGroupKORounds] = useState("4");
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   
+  // Penalty shootout state
+  const [showPenalties, setShowPenalties] = useState(false);
+  const [penMyScore, setPenMyScore] = useState("");
+  const [penOpScore, setPenOpScore] = useState("");
+  
   // Filter for history
   const [filterComp, setFilterComp] = useState("All");
   const [filterSeason, setFilterSeason] = useState<SeasonFilter>("active");
@@ -72,6 +77,12 @@ export default function MatchPage() {
 
   // Get the selected Competition object
   const selectedComp = useMemo(() => competitions.find(c => c.name === competition), [competitions, competition]);
+
+  // Whether selected competition has knockout rounds (show PEN button)
+  const compHasKnockout = useMemo(() => {
+    if (!selectedComp) return false;
+    return selectedComp.format === "knockout" || selectedComp.format === "group-knockout";
+  }, [selectedComp]);
 
   // Auto-compute matchday when competition changes
   useEffect(() => {
@@ -290,6 +301,9 @@ export default function MatchPage() {
     setShowNewComp(false);
     setNewCompName("");
     setNewCompFormat("league");
+    setShowPenalties(false);
+    setPenMyScore("");
+    setPenOpScore("");
   }, []);
 
   const saveMatch = useCallback((e: React.FormEvent) => {
@@ -330,6 +344,11 @@ export default function MatchPage() {
       matchdaySort = existingCount + 1;
     }
     
+    // Penalty data (only saved when explicitly toggled on with valid numbers)
+    const penData = showPenalties && penMyScore !== "" && penOpScore !== ""
+      ? { penMyScore: Number(penMyScore), penOpScore: Number(penOpScore) }
+      : { penMyScore: undefined, penOpScore: undefined };
+
     if (editingMatchId) {
       ctxUpdateMatch(editingMatchId, {
         opponent: opponent.trim(),
@@ -341,6 +360,7 @@ export default function MatchPage() {
         matchday: matchday.trim(),
         formationKey: selectedFormation,
         pitchSlotMap,
+        ...penData,
       });
     } else {
       const newMatch = {
@@ -357,6 +377,7 @@ export default function MatchPage() {
         createdAt: Date.now(),
         formationKey: selectedFormation,
         pitchSlotMap,
+        ...penData,
       };
       ctxAddMatch(newMatch);
     }
@@ -372,7 +393,7 @@ export default function MatchPage() {
       confirmText: "OK",
       onConfirm: () => setModal(null),
     });
-  }, [opponent, competition, myScore, opScore, matchday, matchAppearances, pitchSlots, editingMatchId, matches, activeSeason, goalEvents, selectedFormation, ctxUpdateMatch, ctxAddMatch, resetForm]);
+  }, [opponent, competition, myScore, opScore, matchday, matchAppearances, pitchSlots, editingMatchId, matches, activeSeason, goalEvents, selectedFormation, showPenalties, penMyScore, penOpScore, ctxUpdateMatch, ctxAddMatch, resetForm]);
 
   const startEditMatch = (matchId: string) => {
     const match = matches.find(m => m.id === matchId);
@@ -385,6 +406,16 @@ export default function MatchPage() {
     setGoalEvents([...match.goals]);
     setMatchday(match.matchday || "");
     setMatchdayOverride(true);
+    // Restore penalties if saved
+    if (match.penMyScore != null && match.penOpScore != null) {
+      setShowPenalties(true);
+      setPenMyScore(String(match.penMyScore));
+      setPenOpScore(String(match.penOpScore));
+    } else {
+      setShowPenalties(false);
+      setPenMyScore("");
+      setPenOpScore("");
+    }
     // Restore formation if saved
     const formKey = match.formationKey || selectedFormation;
     setSelectedFormation(formKey);
@@ -631,7 +662,39 @@ export default function MatchPage() {
                   />
                   <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.opScore || ""}</p>
                 </div>
+                {compHasKnockout && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowPenalties(p => !p); if (showPenalties) { setPenMyScore(""); setPenOpScore(""); } }}
+                    className={`self-start mt-6 px-2 py-1.5 rounded text-[10px] font-black uppercase tracking-wider border transition ${showPenalties ? "bg-amber-900/40 text-amber-400 border-amber-700" : "bg-slate-800 text-slate-500 border-slate-700 hover:text-amber-400 hover:border-amber-700"}`}
+                    title="Toggle penalty shootout"
+                  >
+                    PEN
+                  </button>
+                )}
               </div>
+              {showPenalties && (
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase">Penalties</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={penMyScore}
+                    onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenMyScore(v); }}
+                    className="w-12 bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="0"
+                  />
+                  <span className="text-sm font-bold text-slate-600">-</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={penOpScore}
+                    onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenOpScore(v); }}
+                    className="w-12 bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="0"
+                  />
+                </div>
+              )}
             </div>
             {showNewComp && (
               <div className="mt-4 p-4 bg-slate-900/50 border border-slate-700 rounded-lg space-y-3">
@@ -945,7 +1008,7 @@ export default function MatchPage() {
                           </td>
                         )}
                         <td className="p-4 text-center">
-                          <ResultBadge myScore={match.myScore} opScore={match.opScore} />
+                          <ResultBadge myScore={match.myScore} opScore={match.opScore} penMyScore={match.penMyScore} penOpScore={match.penOpScore} />
                         </td>
                         <td className="p-4 text-center text-green-500 text-xs font-medium max-w-[150px] truncate hidden md:table-cell">{getGoalSummary(match, playerMap)}</td>
                         <td className="p-4 text-center text-yellow-500 text-xs font-medium max-w-[150px] truncate hidden md:table-cell">{getAssistSummary(match, playerMap)}</td>

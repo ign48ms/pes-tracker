@@ -158,29 +158,35 @@ export function filterMatchesBySeason(matches: Match[], seasonId: number | "all"
 
 /**
  * Compute season/competition W/D/L record from a set of matches (single pass).
+ * Delegates to getResult so penalty wins/losses are counted correctly.
  */
 export function computeRecord(matches: Match[]) {
   let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0;
   for (const m of matches) {
-    const my = m.myScore || 0;
-    const op = m.opScore || 0;
-    goalsFor += my;
-    goalsAgainst += op;
-    if (my > op) wins++;
-    else if (my === op) draws++;
-    else losses++;
+    goalsFor += m.myScore || 0;
+    goalsAgainst += m.opScore || 0;
+    const r = getResult(m);
+    if (r === "W") wins++;
+    else if (r === "L") losses++;
+    else draws++;
   }
   return { played: matches.length, wins, draws, losses, goalsFor, goalsAgainst, goalDifference: goalsFor - goalsAgainst };
 }
 
 /**
  * Get match result letter.
+ * When the main score is a draw and penalty scores exist, the penalty result is used.
  */
 export function getResult(match: Match): "W" | "D" | "L" {
   const my = match.myScore || 0;
   const op = match.opScore || 0;
   if (my > op) return "W";
   if (my < op) return "L";
+  // Draw in regular time — check penalties
+  if (match.penMyScore != null && match.penOpScore != null) {
+    if (match.penMyScore > match.penOpScore) return "W";
+    if (match.penMyScore < match.penOpScore) return "L";
+  }
   return "D";
 }
 

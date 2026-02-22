@@ -374,7 +374,7 @@ export default function PlayerDetailPage() {
                         <CompBadge competition={comp} colorKey={compColorOverrides.get(comp)} />
                       </td>
                       <td className="p-4 text-center">
-                        <ResultBadge myScore={match.myScore} opScore={match.opScore} />
+                        <ResultBadge myScore={match.myScore} opScore={match.opScore} penMyScore={match.penMyScore} penOpScore={match.penOpScore} />
                       </td>
                       <td className="p-4 text-center font-mono font-bold text-green-500">{goals > 0 ? goals : "-"}</td>
                       <td className="p-4 text-center font-mono font-bold text-yellow-500">{assists > 0 ? assists : "-"}</td>

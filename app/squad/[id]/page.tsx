@@ -14,7 +14,7 @@ export default function PlayerDetailPage() {
   const params = useParams();
   const playerId = Number(params.id);
 
-  const { players, matches, seasons, playerStats, isLoaded, compColorOverrides } = useApp();
+  const { players, matches, seasons, playerStats, isLoaded, compColorOverrides, updatePlayer: ctxUpdatePlayer, isViewingActiveTeam } = useApp();
   const [filterComp, setFilterComp] = useState("All");
   const [filterSeason, setFilterSeason] = useState<string>("all");
 
@@ -158,8 +158,28 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <div className={`text-4xl font-black px-4 py-2 rounded-lg border ${getRatingColors(player.rating)}`}>
-              {player.rating}
+            <div className="flex items-center gap-2">
+              {isViewingActiveTeam && (
+                <button
+                  onClick={() => ctxUpdatePlayer(player.id, { rating: Math.max(1, player.rating - 1) })}
+                  className="w-8 h-8 rounded-lg text-lg font-bold flex items-center justify-center text-slate-500 hover:bg-red-500/20 hover:text-red-400 transition-all border border-slate-700 hover:border-red-500/30 select-none"
+                  title="Decrease rating"
+                >
+                  −
+                </button>
+              )}
+              <div className={`text-4xl font-black px-4 py-2 rounded-lg border ${getRatingColors(player.rating)}`}>
+                {player.rating}
+              </div>
+              {isViewingActiveTeam && (
+                <button
+                  onClick={() => ctxUpdatePlayer(player.id, { rating: Math.min(99, player.rating + 1) })}
+                  className="w-8 h-8 rounded-lg text-lg font-bold flex items-center justify-center text-slate-500 hover:bg-green-500/20 hover:text-green-400 transition-all border border-slate-700 hover:border-green-500/30 select-none"
+                  title="Increase rating"
+                >
+                  +
+                </button>
+              )}
             </div>
           </div>
         </div>

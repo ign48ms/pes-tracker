@@ -571,9 +571,29 @@ export default function SquadPage() {
                       </td>
                       <td className="p-4 text-center text-slate-400 font-medium">{player.age}</td>
                       <td className="p-4 text-center">
-                        <span className={`px-2.5 py-1 rounded-md border font-bold ${getRatingColors(player.rating)}`}>
-                          {player.rating}
-                        </span>
+                        <div className="flex items-center justify-center gap-1">
+                          {isViewingActiveTeam && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); ctxUpdatePlayer(player.id, { rating: Math.max(1, player.rating - 1) }); }}
+                              className="w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center text-slate-500 hover:bg-red-500/20 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 select-none"
+                              title="Decrease rating"
+                            >
+                              −
+                            </button>
+                          )}
+                          <span className={`px-2.5 py-1 rounded-md border font-bold ${getRatingColors(player.rating)}`}>
+                            {player.rating}
+                          </span>
+                          {isViewingActiveTeam && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); ctxUpdatePlayer(player.id, { rating: Math.min(99, player.rating + 1) }); }}
+                              className="w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center text-slate-500 hover:bg-green-500/20 hover:text-green-400 transition-all opacity-0 group-hover:opacity-100 select-none"
+                              title="Increase rating"
+                            >
+                              +
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-center font-mono font-bold text-slate-300">{getStats(player).appearances}</td>
                       <td className="p-4 text-center font-mono font-bold text-green-500">{getStats(player).goals}</td>

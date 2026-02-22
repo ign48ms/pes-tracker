@@ -18,7 +18,7 @@ import MatchFilters from '../components/MatchFilters';
 
 // --- Main Page ---
 export default function MatchPage() {
-  const { players, matches, seasons, competitions, activeSeason, isLoaded, isViewingActiveTeam, setMatches, setCompetitions, addMatch: ctxAddMatch, deleteMatch: ctxDeleteMatch, updateMatch: ctxUpdateMatch, addCompetition: ctxAddCompetition, defaultFormation } = useApp();
+  const { players, matches, seasons, competitions, activeSeason, isLoaded, isViewingActiveTeam, setMatches, setCompetitions, addMatch: ctxAddMatch, deleteMatch: ctxDeleteMatch, updateMatch: ctxUpdateMatch, addCompetition: ctxAddCompetition, defaultFormation, compColorOverrides } = useApp();
   
   // Form Inputs
   const [opponent, setOpponent] = useState("");
@@ -29,7 +29,8 @@ export default function MatchPage() {
   const [newCompName, setNewCompName] = useState("");
   const [newCompFormat, setNewCompFormat] = useState<CompetitionFormat>("league");
   const [newCompKORounds, setNewCompKORounds] = useState("4");
-  const [newCompPlayoffLegs, setNewCompPlayoffLegs] = useState(false);
+  const [newCompKOLegs, setNewCompKOLegs] = useState<1 | 2>(1);
+  const [newCompSLFinal, setNewCompSLFinal] = useState(false);
   const [newCompGroupGames, setNewCompGroupGames] = useState("6");
   const [newCompGroupKORounds, setNewCompGroupKORounds] = useState("4");
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
@@ -460,16 +461,20 @@ export default function MatchPage() {
     };
     if (newCompFormat === "knockout") {
       newComp.knockoutRounds = Math.max(1, Number(newCompKORounds) || 4);
-      if (newCompPlayoffLegs) newComp.playoffLegs = 2;
+      newComp.knockoutLegs = newCompKOLegs;
+      if (newCompKOLegs === 2) newComp.singleLegFinal = newCompSLFinal;
     } else if (newCompFormat === "group-knockout") {
       newComp.groupGames = Math.max(1, Number(newCompGroupGames) || 6);
       newComp.groupKnockoutRounds = Math.max(1, Number(newCompGroupKORounds) || 4);
+      newComp.knockoutLegs = newCompKOLegs;
+      if (newCompKOLegs === 2) newComp.singleLegFinal = newCompSLFinal;
     }
     ctxAddCompetition(newComp);
     setCompetition(name);
     setNewCompName("");
     setNewCompFormat("league");
-    setNewCompPlayoffLegs(false);
+    setNewCompKOLegs(1);
+    setNewCompSLFinal(false);
     setShowNewComp(false);
   };
 
@@ -580,7 +585,9 @@ export default function MatchPage() {
                 <p className="h-4 mt-1 text-[10px] font-medium">
                   {fieldErrors.competition
                     ? <span className="text-red-400">{fieldErrors.competition}</span>
-                    : <span className="text-slate-500">{matchday}</span>}
+                    : matchday
+                      ? <span className="text-slate-500">{matchday}</span>
+                      : <a href="/settings" className="text-slate-600 hover:text-blue-400 transition">Manage competitions →</a>}
                 </p>
               </div>
 
@@ -662,15 +669,28 @@ export default function MatchPage() {
                           ({Number(newCompKORounds) > 0 ? getKnockoutRoundName(Number(newCompKORounds)) : "..."} → Final)
                         </span>
                       </div>
-                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={newCompPlayoffLegs}
-                          onChange={e => setNewCompPlayoffLegs(e.target.checked)}
-                          className="accent-blue-500"
-                        />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">2-legged playoff</span>
-                      </label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">KO Legs</label>
+                        <select
+                          value={newCompKOLegs}
+                          onChange={e => setNewCompKOLegs(Number(e.target.value) as 1 | 2)}
+                          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value={1}>Single leg</option>
+                          <option value={2}>Two-legged</option>
+                        </select>
+                      </div>
+                      {newCompKOLegs === 2 && (
+                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={newCompSLFinal}
+                            onChange={e => setNewCompSLFinal(e.target.checked)}
+                            className="accent-blue-500"
+                          />
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Single-leg final</span>
+                        </label>
+                      )}
                     </>
                   )}
                   {newCompFormat === "group-knockout" && (
@@ -693,6 +713,28 @@ export default function MatchPage() {
                           className="bg-slate-900 border border-slate-700 rounded px-2 py-1 w-16 text-sm text-center text-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">KO Legs</label>
+                        <select
+                          value={newCompKOLegs}
+                          onChange={e => setNewCompKOLegs(Number(e.target.value) as 1 | 2)}
+                          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value={1}>Single leg</option>
+                          <option value={2}>Two-legged</option>
+                        </select>
+                      </div>
+                      {newCompKOLegs === 2 && (
+                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={newCompSLFinal}
+                            onChange={e => setNewCompSLFinal(e.target.checked)}
+                            className="accent-blue-500"
+                          />
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Single-leg final</span>
+                        </label>
+                      )}
                     </>
                   )}
                 </div>
@@ -899,7 +941,7 @@ export default function MatchPage() {
                         <td className="p-4 text-center text-xs text-slate-500 hidden sm:table-cell">{match.matchday || "-"}</td>
                         {filterComp === "All" && (
                           <td className="p-4 text-center">
-                            <CompBadge competition={comp} />
+                            <CompBadge competition={comp} colorKey={compColorOverrides.get(comp)} />
                           </td>
                         )}
                         <td className="p-4 text-center">

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import SeasonManager from "../components/SeasonManager";
 import TeamManager from "../components/TeamManager";
+import CompetitionManager from "../components/CompetitionManager";
 const DataManager = dynamic(() => import("../components/DataManager"), { ssr: false });
 import { useApp } from "../lib/AppContext";
 import { FORMATION_NAMES } from "../lib/constants";
@@ -10,8 +11,14 @@ import { FORMATION_NAMES } from "../lib/constants";
 export default function SettingsPage() {
   const { teamName, setTeamName, defaultFormation, setDefaultFormation } = useApp();
   const [nameInput, setNameInput] = useState(teamName);
+  const [formationInput, setFormationInput] = useState(defaultFormation);
 
   useEffect(() => { setNameInput(teamName); }, [teamName]);
+  useEffect(() => { setFormationInput(defaultFormation); }, [defaultFormation]);
+
+  const handleSaveFormation = () => {
+    setDefaultFormation(formationInput);
+  };
 
   const handleSaveTeamName = () => {
     setTeamName(nameInput.trim());
@@ -69,16 +76,32 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <label className="text-sm text-slate-300 whitespace-nowrap">Default Formation</label>
               <select
-                value={defaultFormation}
-                onChange={e => setDefaultFormation(e.target.value)}
+                value={formationInput}
+                onChange={e => setFormationInput(e.target.value)}
                 className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
               >
                 {FORMATION_NAMES.map(f => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
+              <button
+                onClick={handleSaveFormation}
+                disabled={formationInput === defaultFormation}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold rounded transition"
+              >
+                Save
+              </button>
             </div>
           </div>
+        </section>
+
+        {/* Competition Management */}
+        <section className="mb-8">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-red-500 rounded-full"></span>
+            Competition Management
+          </h2>
+          <CompetitionManager />
         </section>
 
         {/* Season Management */}

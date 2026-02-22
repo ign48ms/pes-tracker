@@ -3,19 +3,19 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useApp } from "./lib/AppContext";
 import { computeRecord, getResult, getTopScorers, getTopAssisters, getMatchCompetitions, computeStreaks, computeMilestones, derivePlayerStats, applySeasonFilter } from "./lib/stats";
-import { getPositionColors, getCompColor } from "./lib/constants";
+import { getPositionColors, getCompColor, FRIENDLY_DEFAULT } from "./lib/constants";
 import type { SeasonFilter } from "./lib/types";
 import ResultBadge from "./components/ResultBadge";
 import CompBadge from "./components/CompBadge";
 
 export default function DashboardPage() {
-  const { players, matches, seasons, activeSeason, playerStats, teamName, isLoaded } = useApp();
+  const { players, matches, seasons, activeSeason, playerStats, teamName, isLoaded, compColorOverrides } = useApp();
 
   const [filterSeason, setFilterSeason] = useState<SeasonFilter>("active");
 
   // Season matches based on picker
   const seasonMatches = useMemo(() => {
-    return applySeasonFilter(matches, filterSeason, activeSeason)
+    return [...applySeasonFilter(matches, filterSeason, activeSeason)]
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [matches, filterSeason, activeSeason]);
 
@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const compBreakdown = useMemo(() => {
     const groups = new Map<string, typeof seasonMatches>();
     for (const m of seasonMatches) {
-      const comp = m.competition || "Friendly";
+      const comp = m.competition || FRIENDLY_DEFAULT;
       if (!groups.has(comp)) groups.set(comp, []);
       groups.get(comp)!.push(m);
     }
@@ -62,8 +62,8 @@ export default function DashboardPage() {
   const displaySeasonName = useMemo(() => {
     if (filterSeason === "active" && activeSeason) return activeSeason.name;
     if (filterSeason === "all") return "All Seasons";
-    const s = seasons.find(s => s.id === Number(filterSeason));
-    return s?.name || "Unknown";
+    const found = seasons.find(season => season.id === Number(filterSeason));
+    return found?.name || "Unknown";
   }, [filterSeason, activeSeason, seasons]);
 
   if (!isLoaded) {
@@ -106,7 +106,7 @@ export default function DashboardPage() {
                 <option value="active">Active Season</option>
                 <option value="all">All Seasons</option>
                 {seasons.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={s.id} value={String(s.id)}>{s.name}</option>
                 ))}
               </select>
             </div>
@@ -203,24 +203,33 @@ export default function DashboardPage() {
 
             {/* Streaks */}
             {seasonMatches.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-1">Win Streak</p>
-                  <p className="text-xl font-black text-green-400">{streaks.current.winStreak}</p>
-                  <p className="text-[9px] text-slate-600">Best: {streaks.best.winStreak}</p>
-                </div>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Unbeaten</p>
-                  <p className="text-xl font-black text-blue-400">{streaks.current.unbeatenStreak}</p>
-                  <p className="text-[9px] text-slate-600">Best: {streaks.best.unbeatenStreak}</p>
-                </div>
-                {Object.entries(streaks.byComp).slice(0, 2).map(([comp, cs]) => (
-                  <div key={comp} className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1 truncate" title={comp}>{comp}</p>
-                    <p className="text-xl font-black text-green-400">{cs.current.winStreak}W</p>
-                    <p className="text-[9px] text-slate-600">{cs.current.unbeatenStreak} unbeaten</p>
+              <div>
+                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <span className="w-1.5 h-5 bg-green-500 rounded-full"></span>
+                  Streaks
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-1">🔥 Win Streak</p>
+                    <p className="text-xl font-black text-green-400">{streaks.current.winStreak}</p>
+                    <p className="text-[9px] text-slate-500">Best: {streaks.best.winStreak}</p>
                   </div>
-                ))}
+                  <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">🛡️ Unbeaten Run</p>
+                    <p className="text-xl font-black text-blue-400">{streaks.current.unbeatenStreak}</p>
+                    <p className="text-[9px] text-slate-500">Best: {streaks.best.unbeatenStreak}</p>
+                  </div>
+                  {Object.entries(streaks.byComp)
+                    .sort(([, a], [, b]) => b.current.winStreak - a.current.winStreak)
+                    .slice(0, 2)
+                    .map(([comp, cs]) => (
+                    <div key={comp} className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1 truncate" title={comp}>🏆 {comp}</p>
+                      <p className="text-sm font-black text-green-400">{cs.current.winStreak}WS <span className="text-slate-600 font-normal">/ best {cs.best.winStreak}</span></p>
+                      <p className="text-sm font-black text-blue-400">{cs.current.unbeatenStreak} unbeaten <span className="text-slate-600 font-normal">/ best {cs.best.unbeatenStreak}</span></p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -232,9 +241,7 @@ export default function DashboardPage() {
                   Milestones
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {milestones.map((m, i) => {
-                    const p = players.find(pl => pl.id === m.playerId);
-                    return (
+                  {milestones.map((m, i) => (
                       <Link
                         key={i}
                         href={`/squad/${m.playerId}`}
@@ -246,10 +253,9 @@ export default function DashboardPage() {
                             : "bg-yellow-900/30 border-yellow-700/50 text-yellow-400"
                         }`}
                       >
-                        🏆 {p?.name || "?"} — {m.milestone} {m.type}
+                        🏆 {m.playerName || "?"} — {m.milestone} {m.type}
                       </Link>
-                    );
-                  })}
+                  ))}
                 </div>
               </div>
             )}
@@ -343,7 +349,7 @@ export default function DashboardPage() {
                             <span className="font-semibold text-sm text-slate-200">{match.opponent}</span>
                           </div>
                         </div>
-                        <CompBadge competition={match.competition || "Friendly"} />
+                        <CompBadge competition={match.competition || "Friendly"} colorKey={compColorOverrides.get(match.competition || "Friendly")} />
                       </div>
                     );
                   })}
@@ -360,7 +366,7 @@ export default function DashboardPage() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {compBreakdown.map(({ comp, record: r }) => {
-                    const cc = getCompColor(comp);
+                    const cc = getCompColor(comp, compColorOverrides.get(comp));
                     return (
                       <div key={comp} className={`p-3 rounded-lg border ${cc.border} ${cc.bg}`}>
                         <div className="flex items-center justify-between mb-2">

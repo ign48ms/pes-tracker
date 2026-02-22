@@ -19,6 +19,8 @@ interface AppContextValue {
   // Derived
   activeSeason: Season | null;
   playerStats: Map<number, PlayerStats>;
+  /** Maps competition name → user-chosen colorKey (only entries that have a colorKey set) */
+  compColorOverrides: Map<string, string>;
 
   // ─── Multi-team ───
   activeTeamMeta: ActiveTeamMeta;
@@ -50,6 +52,8 @@ interface AppContextValue {
   // Competition mutations (global — always writable)
   setCompetitions: (update: Competition[] | ((prev: Competition[]) => Competition[])) => void;
   addCompetition: (comp: Competition) => void;
+  removeCompetition: (id: number) => void;
+  updateCompetition: (id: number, updates: Partial<Competition>) => void;
 
   // Team name (for active team only)
   setTeamName: (name: string) => void;
@@ -155,6 +159,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [players, matches]
   );
 
+  // Build a name→colorKey map for competitions with user-chosen colors
+  const compColorOverrides = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of competitions) {
+      if (c.colorKey) map.set(c.name, c.colorKey);
+    }
+    return map;
+  }, [competitions]);
+
   // ─── Persisting setters (guard: no-op when viewing archived) ───
   const setPlayers = useCallback((update: Player[] | ((prev: Player[]) => Player[])) => {
     if (!isViewingActiveTeam) return;
@@ -234,8 +247,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addCompetition = useCallback((comp: Competition) => {
     setCompetitions(prev => {
       if (prev.some(c => c.name === comp.name)) return prev;
+      if (comp.predefinedId && prev.some(c => c.predefinedId === comp.predefinedId)) return prev;
       return [...prev, comp];
     });
+  }, [setCompetitions]);
+
+  const removeCompetition = useCallback((id: number) => {
+    setCompetitions(prev => prev.filter(c => c.id !== id));
+  }, [setCompetitions]);
+
+  const updateCompetition = useCallback((id: number, updates: Partial<Competition>) => {
+    setCompetitions(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   }, [setCompetitions]);
 
   const setTeamNameFn = useCallback((name: string) => {
@@ -306,7 +328,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppContextValue>(() => ({
     players, matches, seasons, competitions, teamName, isLoaded,
-    activeSeason, playerStats,
+    activeSeason, playerStats, compColorOverrides,
     activeTeamMeta: _activeTeamMeta,
     archivedTeams,
     viewingTeamId,
@@ -318,20 +340,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPlayers, addPlayer, updatePlayer, deletePlayer,
     setMatches, addMatch, deleteMatch, updateMatch,
     setSeasons,
-    setCompetitions, addCompetition,
+    setCompetitions, addCompetition, removeCompetition, updateCompetition,
     setTeamName: setTeamNameFn,
     defaultFormation,
     setDefaultFormation: setDefaultFormationFn,
     importData, clearAll,
   }), [
     players, matches, seasons, competitions, teamName, isLoaded,
-    activeSeason, playerStats,
+    activeSeason, playerStats, compColorOverrides,
     _activeTeamMeta, archivedTeams, viewingTeamId, isViewingActiveTeam,
     createNewTeam, switchViewingTeam, renameArchivedTeam, removeArchivedTeam,
     setPlayers, addPlayer, updatePlayer, deletePlayer,
     setMatches, addMatch, deleteMatch, updateMatch,
     setSeasons,
-    setCompetitions, addCompetition,
+    setCompetitions, addCompetition, removeCompetition, updateCompetition,
     setTeamNameFn,
     defaultFormation, setDefaultFormationFn,
     importData, clearAll,

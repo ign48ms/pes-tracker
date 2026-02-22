@@ -122,6 +122,10 @@ export function applySeasonFilter(
   if (filterSeason === "active" && activeSeason) {
     return filterMatchesBySeason(matches, activeSeason.id);
   }
+  if (filterSeason === "active") {
+    // activeSeason is null (e.g. during initial load) — return all matches as a safe fallback
+    return matches;
+  }
   if (filterSeason !== "all") {
     return filterMatchesBySeason(matches, Number(filterSeason));
   }
@@ -173,8 +177,10 @@ export function computeRecord(matches: Match[]) {
  * Get match result letter.
  */
 export function getResult(match: Match): "W" | "D" | "L" {
-  if (match.myScore > match.opScore) return "W";
-  if (match.myScore < match.opScore) return "L";
+  const my = match.myScore || 0;
+  const op = match.opScore || 0;
+  if (my > op) return "W";
+  if (my < op) return "L";
   return "D";
 }
 

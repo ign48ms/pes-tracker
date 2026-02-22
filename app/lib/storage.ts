@@ -17,7 +17,7 @@ const KEYS = {
 } as const;
 
 const MIGRATION_KEY = "pes-migration-version";
-const CURRENT_MIGRATION = 5;
+const CURRENT_MIGRATION = 6;
 let _migrated = false;
 
 // ─── Safe JSON parse ───
@@ -54,7 +54,7 @@ function ensureMigrations(): void {
       myScore: typeof m.myScore === "string" ? (Number(m.myScore) || 0) : (m.myScore ?? 0),
       opScore: typeof m.opScore === "string" ? (Number(m.opScore) || 0) : (m.opScore ?? 0),
       seasonId: m.seasonId || defaultSeasonId,
-      date: m.date || new Date((m.id as number) || Date.now()).toISOString(),
+      date: m.date || new Date(typeof m.id === 'number' && isFinite(m.id) ? m.id : Date.now()).toISOString(),
       goals: m.goals || [],
       appearanceIds: m.appearanceIds || [],
       competition: m.competition || FRIENDLY_DEFAULT,
@@ -211,6 +211,36 @@ function ensureMigrations(): void {
     if (!localStorage.getItem(KEYS.archivedTeams)) {
       safeWriteNow(KEYS.archivedTeams, JSON.stringify([]));
     }
+  }
+
+  // Migration 6: convert playoffLegs → hasPreliminaryRound + preliminaryLegs; add knockoutLegs defaults;
+  // set predefinedId for known default competitions; add knockoutLegs: 2 to Champions League
+  if (version < 6) {
+    const comps = safeParse<Competition[]>(KEYS.competitions, []);
+    const migrated = comps.map(c => {
+      const updated = { ...c };
+      // Convert legacy playoffLegs to new preliminary round system
+      if (c.playoffLegs && c.playoffLegs > 0 && !c.hasPreliminaryRound) {
+        updated.hasPreliminaryRound = true;
+        updated.preliminaryLegs = c.playoffLegs as 1 | 2;
+        delete updated.playoffLegs;
+      }
+      // Add knockoutLegs default for existing knockout/group-knockout comps
+      if ((c.format === "knockout" || c.format === "group-knockout") && c.knockoutLegs === undefined) {
+        updated.knockoutLegs = 1;
+      }
+      // Map known default competition names to predefined IDs
+      if (c.name === "Champions League" && !c.predefinedId) {
+        updated.predefinedId = "eur-champions-league";
+        updated.knockoutLegs = 2;
+        updated.singleLegFinal = true;
+      }
+      if (c.name === "Friendly" && !c.predefinedId) {
+        updated.predefinedId = "gen-friendly";
+      }
+      return updated;
+    });
+    localStorage.setItem(KEYS.competitions, JSON.stringify(migrated));
   }
 
   localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION.toString());

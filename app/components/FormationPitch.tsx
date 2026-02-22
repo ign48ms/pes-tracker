@@ -142,21 +142,21 @@ const PitchPlayerCard = React.memo(function PitchPlayerCard({
         className="flex flex-col items-center gap-0.5 group cursor-pointer"
       >
         {/* Card */}
-        <div className="bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg px-1.5 sm:px-2.5 py-1 sm:py-1.5 shadow-lg hover:border-blue-500/50 transition min-w-[48px] sm:min-w-[72px]">
+        <div className="bg-slate-800 border border-slate-600 rounded-lg shadow-lg hover:border-blue-500/50 transition w-[90px] sm:w-[120px] py-1.5 sm:py-2 flex flex-col items-center justify-center gap-1 px-1">
           <div className="flex items-center justify-center gap-1">
-            <span className={`text-[8px] sm:text-[9px] font-black px-1 py-0 rounded border ${getPositionColors(player.position)}`}>
+            <span className={`text-[10px] sm:text-[11px] font-black px-1 py-0 rounded border ${getPositionColors(player.position)}`}>
               {player.position}
             </span>
-            <span className={`text-[8px] sm:text-[10px] font-bold px-1 py-0 rounded border ${getRatingColors(player.rating)}`}>
+            <span className={`text-[10px] sm:text-xs font-bold px-1 py-0 rounded border ${getRatingColors(player.rating)}`}>
               {player.rating}
             </span>
           </div>
-          <p className="text-[9px] sm:text-[11px] font-bold text-white text-center truncate max-w-[44px] sm:max-w-[68px] mt-0.5">
+          <p className="text-[11px] sm:text-sm font-bold text-white text-center truncate w-full px-1">
             {player.name}
           </p>
         </div>
         {/* Slot label */}
-        <span className="text-[7px] sm:text-[8px] font-bold text-emerald-300/60 uppercase">{slot.label}</span>
+        <span className="text-[8px] sm:text-[10px] font-bold text-emerald-300/60 uppercase">{slot.label}</span>
       </button>
 
       {/* Context menu */}
@@ -195,8 +195,8 @@ const EmptySlot = React.memo(function EmptySlot({
       aria-label={`Add player to ${slot.label}`}
       className="flex flex-col items-center gap-0.5 group cursor-pointer"
     >
-      <div className="w-[48px] h-[40px] sm:w-[72px] sm:h-[48px] flex flex-col items-center justify-center border-2 border-dashed border-emerald-700/40 rounded-lg bg-emerald-950/20 hover:bg-emerald-900/30 hover:border-emerald-500/50 transition">
-        <span className="text-emerald-500/60 text-sm sm:text-lg font-bold group-hover:text-emerald-400 transition">+</span>
+      <div className="w-[90px] h-[46px] sm:w-[120px] sm:h-[56px] flex flex-col items-center justify-center border-2 border-dashed border-emerald-700/40 rounded-lg bg-emerald-950/20 hover:bg-emerald-900/30 hover:border-emerald-500/50 transition">
+        <span className="text-emerald-500/60 text-xl sm:text-3xl font-bold group-hover:text-emerald-400 transition">+</span>
       </div>
       <span className="text-[7px] sm:text-[8px] font-bold text-emerald-300/60 uppercase">{slot.label}</span>
     </button>

@@ -67,12 +67,50 @@ export interface Competition {
   format: CompetitionFormat;
   /** Total knockout rounds for "knockout" format (e.g. 4 = R16→QF→SF→F) */
   knockoutRounds?: number;
-  /** Number of 2-legged playoff matches before the main knockout rounds (e.g. 2 = Playoff Leg 1 + Leg 2) */
+  /** @deprecated Use hasPreliminaryRound + preliminaryLegs instead. Kept for migration compat. */
   playoffLegs?: number;
   /** Group stage game count for "group-knockout" */
   groupGames?: number;
   /** Knockout rounds after group stage for "group-knockout" */
   groupKnockoutRounds?: number;
+  /** Number of legs per knockout round: 1 = single-leg (default), 2 = two-legged */
+  knockoutLegs?: 1 | 2;
+  /** If knockoutLegs is 2, the final is a single match instead of two legs */
+  singleLegFinal?: boolean;
+  /** Optional preliminary round before the main knockout rounds (e.g. division 2 teams) */
+  hasPreliminaryRound?: boolean;
+  /** Number of legs for the preliminary round (1 or 2). Requires hasPreliminaryRound. */
+  preliminaryLegs?: 1 | 2;
+  /** Links this competition instance to a catalogue template ID (e.g. "eng-fa-cup") */
+  predefinedId?: string;
+  /** User-chosen color palette key (e.g. "red", "blue"). When set, overrides the default name-based color. */
+  colorKey?: string;
+}
+
+// ─── Competition template (catalogue) types ───
+export interface CompetitionTemplate {
+  templateId: string;
+  name: string;
+  country: string;
+  group: string;
+  format: CompetitionFormat;
+  knockoutRounds?: number;
+  groupGames?: number;
+  groupKnockoutRounds?: number;
+  knockoutLegs?: 1 | 2;
+  singleLegFinal?: boolean;
+  /** Whether this competition supports the optional preliminary round toggle */
+  supportsPreliminary?: boolean;
+  /** Default preliminary legs when preliminary is enabled */
+  defaultPreliminaryLegs?: 1 | 2;
+}
+
+export interface LeagueSystem {
+  id: string;
+  name: string;
+  country: string;
+  flag: string;
+  templates: CompetitionTemplate[];
 }
 
 export interface Season {

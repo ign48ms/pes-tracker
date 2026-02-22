@@ -14,7 +14,7 @@ export default function PlayerDetailPage() {
   const params = useParams();
   const playerId = Number(params.id);
 
-  const { players, matches, seasons, playerStats, isLoaded } = useApp();
+  const { players, matches, seasons, playerStats, isLoaded, compColorOverrides } = useApp();
   const [filterComp, setFilterComp] = useState("All");
   const [filterSeason, setFilterSeason] = useState<string>("all");
 
@@ -282,7 +282,7 @@ export default function PlayerDetailPage() {
               <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">By Competition</h2>
               <div className="space-y-2">
                 {compBreakdown.map(({ comp, stats }) => {
-                  const cc = getCompColor(comp);
+                  const cc = getCompColor(comp, compColorOverrides.get(comp));
                   return (
                     <div key={comp} className={`flex items-center justify-between p-3 rounded-lg border ${cc.border} ${cc.bg}`}>
                       <span className={`text-sm font-bold ${cc.text}`}>{comp}</span>
@@ -351,7 +351,7 @@ export default function PlayerDetailPage() {
                       <td className="p-4 font-bold text-slate-200">{match.opponent}</td>
                       <td className="p-4 text-center text-xs text-slate-500 hidden sm:table-cell">{match.matchday || "-"}</td>
                       <td className="p-4 text-center">
-                        <CompBadge competition={comp} />
+                        <CompBadge competition={comp} colorKey={compColorOverrides.get(comp)} />
                       </td>
                       <td className="p-4 text-center">
                         <ResultBadge myScore={match.myScore} opScore={match.opScore} />

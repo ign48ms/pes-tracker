@@ -13,7 +13,7 @@ export default function OpponentDetailPage() {
   const params = useParams();
   const opponentName = decodeURIComponent(String(params.name));
 
-  const { players, matches, isLoaded } = useApp();
+  const { players, matches, isLoaded, compColorOverrides } = useApp();
 
   const opMatches = useMemo(() => {
     return matches
@@ -213,7 +213,7 @@ export default function OpponentDetailPage() {
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">By Competition</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {compBreakdown.map(({ comp, record: r }) => {
-                const cc = getCompColor(comp);
+                const cc = getCompColor(comp, compColorOverrides.get(comp));
                 return (
                   <div key={comp} className={`p-3 rounded-lg border ${cc.border} ${cc.bg}`}>
                     <div className="flex items-center justify-between mb-2">
@@ -255,7 +255,7 @@ export default function OpponentDetailPage() {
                 <tr key={match.id} className="hover:bg-blue-500/5 transition-colors">
                   <td className="p-4 text-xs text-slate-500">{match.matchday || "-"}</td>
                   <td className="p-4 text-center">
-                    <CompBadge competition={match.competition || "Friendly"} />
+                    <CompBadge competition={match.competition || "Friendly"} colorKey={compColorOverrides.get(match.competition || "Friendly")} />
                   </td>
                   <td className="p-4 text-center">
                     <ResultBadge myScore={match.myScore} opScore={match.opScore} />

@@ -12,7 +12,7 @@ import type { SeasonFilter } from '../lib/types';
 
 export default function SquadPage() {
   const router = useRouter();
-  const { players, matches, seasons, activeSeason, isLoaded, isViewingActiveTeam, setPlayers, setMatches, addPlayer: ctxAddPlayer, deletePlayer: ctxDeletePlayer, updatePlayer: ctxUpdatePlayer } = useApp();
+  const { players, matches, seasons, activeSeason, isLoaded, isViewingActiveTeam, setPlayers, setMatches, addPlayer: ctxAddPlayer, deletePlayer: ctxDeletePlayer, updatePlayer: ctxUpdatePlayer, compColorOverrides } = useApp();
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [rating, setRating] = useState("");
@@ -283,7 +283,7 @@ export default function SquadPage() {
                   ))}
                 </select>
                 {filterComp !== "All" && (
-                  <span className={`text-xs font-bold ${getCompColor(filterComp).text} ${getCompColor(filterComp).bg} border ${getCompColor(filterComp).border} px-3 py-1 rounded`}>{filterComp}</span>
+                  <span className={`text-xs font-bold ${getCompColor(filterComp, compColorOverrides.get(filterComp)).text} ${getCompColor(filterComp, compColorOverrides.get(filterComp)).bg} border ${getCompColor(filterComp, compColorOverrides.get(filterComp)).border} px-3 py-1 rounded`}>{filterComp}</span>
                 )}
               </div>
             )}

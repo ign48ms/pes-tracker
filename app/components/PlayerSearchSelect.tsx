@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useId } from "react";
 import type { Player } from "../lib/types";
+import { POS_ORDER } from "../lib/constants";
 
 interface PlayerSearchSelectProps {
   players: Player[];
@@ -41,7 +42,8 @@ export default function PlayerSearchSelect({
   const selectedPlayer = players.find(p => p.id.toString() === value);
   const displayName = value === "OG" ? "Own Goal" : selectedPlayer ? selectedPlayer.name : "";
 
-  const filtered = players.filter(p =>
+  const sorted = [...players].sort((a, b) => (POS_ORDER[a.position] ?? 99) - (POS_ORDER[b.position] ?? 99));
+  const filtered = sorted.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 

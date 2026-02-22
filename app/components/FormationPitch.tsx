@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import type { Player, FormationSlot } from "../lib/types";
-import { FORMATIONS, DEFAULT_FORMATION, getPositionColors, getRatingColors } from "../lib/constants";
+import { FORMATIONS, DEFAULT_FORMATION, getPositionColors, getRatingColors, POS_ORDER } from "../lib/constants";
 
 interface SlotPopoverProps {
   slot: FormationSlot;
@@ -32,9 +32,13 @@ function SlotPopover({ slot, availablePlayers, onSelect, onClose, anchorRect, pi
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  // Split players into suggested (position match) and others
-  const suggested = availablePlayers.filter(p => slot.suggestedPositions.includes(p.position));
-  const others = availablePlayers.filter(p => !slot.suggestedPositions.includes(p.position));
+  // Split players into suggested (position match) and others, sorted by position priority
+  const suggested = availablePlayers
+    .filter(p => slot.suggestedPositions.includes(p.position))
+    .sort((a, b) => slot.suggestedPositions.indexOf(a.position) - slot.suggestedPositions.indexOf(b.position));
+  const others = availablePlayers
+    .filter(p => !slot.suggestedPositions.includes(p.position))
+    .sort((a, b) => (POS_ORDER[a.position] ?? 99) - (POS_ORDER[b.position] ?? 99));
 
   const q = search.toLowerCase();
   const filteredSuggested = q ? suggested.filter(p => p.name.toLowerCase().includes(q)) : suggested;

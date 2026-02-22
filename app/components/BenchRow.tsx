@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import type { Player } from "../lib/types";
-import { getPositionColors, getRatingColors } from "../lib/constants";
+import { getPositionColors, getRatingColors, POS_ORDER } from "../lib/constants";
 
 const MAX_SUBS = 5;
 
@@ -46,7 +46,8 @@ export default function BenchRow({ benchPlayers, allPlayers, selectedIds, onBenc
   }, [popoverSlot]);
 
   const q = search.toLowerCase();
-  const filtered = q ? availablePlayers.filter(p => p.name.toLowerCase().includes(q)) : availablePlayers;
+  const sorted = [...availablePlayers].sort((a, b) => (POS_ORDER[a.position] ?? 99) - (POS_ORDER[b.position] ?? 99));
+  const filtered = q ? sorted.filter(p => p.name.toLowerCase().includes(q)) : sorted;
 
   // Compute how many slots to show: filled + 1 empty (up to MAX_SUBS)
   const filledCount = benchPlayers.filter(Boolean).length;

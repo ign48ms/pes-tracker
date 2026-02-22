@@ -634,67 +634,74 @@ export default function MatchPage() {
                 <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.opponent || ""}</p>
               </div>
               
-              <div className="flex items-center gap-2">
-                <div className="w-16 text-center">
-                  <label htmlFor="match-gf" className="block text-xs font-bold text-blue-400 uppercase mb-2">GF</label>
-                  <input 
-                    id="match-gf"
-                    type="number"
-                    min="0"
-                    value={myScore} 
-                    onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) { setMyScore(v); setFieldErrors(prev => { const { myScore: _, ...rest } = prev; return rest; }); } }}
-                    className={`w-full bg-slate-900 p-3 text-center text-xl font-bold rounded border focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${fieldErrors.myScore ? "border-red-500" : "border-slate-700 focus:border-blue-500"}`}
-                    placeholder="0"
-                  />
-                  <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.myScore || ""}</p>
-                </div>
-                <span className="text-2xl font-bold text-slate-600">-</span>
-                <div className="w-16 text-center">
-                  <label htmlFor="match-ga" className="block text-xs font-bold text-red-400 uppercase mb-2">GA</label>
-                  <input 
-                    id="match-ga"
-                    type="number"
-                    min="0"
-                    value={opScore} 
-                    onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) { setOpScore(v); setFieldErrors(prev => { const { opScore: _, ...rest } = prev; return rest; }); } }}
-                    className={`w-full bg-slate-900 p-3 text-center text-xl font-bold rounded border focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${fieldErrors.opScore ? "border-red-500" : "border-slate-700 focus:border-blue-500"}`}
-                    placeholder="0"
-                  />
-                  <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.opScore || ""}</p>
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-16 text-center">
+                    <label htmlFor="match-gf" className="block text-xs font-bold text-blue-400 uppercase mb-2">GF</label>
+                    <input 
+                      id="match-gf"
+                      type="number"
+                      min="0"
+                      value={myScore} 
+                      onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) { setMyScore(v); setFieldErrors(prev => { const { myScore: _, ...rest } = prev; return rest; }); } }}
+                      className={`w-full bg-slate-900 p-3 text-center text-xl font-bold rounded border focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${fieldErrors.myScore ? "border-red-500" : "border-slate-700 focus:border-blue-500"}`}
+                      placeholder="0"
+                    />
+                    <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.myScore || ""}</p>
+                  </div>
+                  <span className="text-2xl font-bold text-slate-600">-</span>
+                  <div className="w-16 text-center">
+                    <label htmlFor="match-ga" className="block text-xs font-bold text-red-400 uppercase mb-2">GA</label>
+                    <input 
+                      id="match-ga"
+                      type="number"
+                      min="0"
+                      value={opScore} 
+                      onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) { setOpScore(v); setFieldErrors(prev => { const { opScore: _, ...rest } = prev; return rest; }); } }}
+                      className={`w-full bg-slate-900 p-3 text-center text-xl font-bold rounded border focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${fieldErrors.opScore ? "border-red-500" : "border-slate-700 focus:border-blue-500"}`}
+                      placeholder="0"
+                    />
+                    <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.opScore || ""}</p>
+                  </div>
                 </div>
                 {compHasKnockout && (
                   <button
                     type="button"
                     onClick={() => { setShowPenalties(p => !p); if (showPenalties) { setPenMyScore(""); setPenOpScore(""); } }}
-                    className={`self-start mt-6 px-2 py-1.5 rounded text-[10px] font-black uppercase tracking-wider border transition ${showPenalties ? "bg-amber-900/40 text-amber-400 border-amber-700" : "bg-slate-800 text-slate-500 border-slate-700 hover:text-amber-400 hover:border-amber-700"}`}
+                    className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider border transition ${showPenalties ? "bg-amber-900/40 text-amber-400 border-amber-700" : "bg-slate-800 text-slate-500 border-slate-700 hover:text-amber-400 hover:border-amber-700"}`}
                     title="Toggle penalty shootout"
                   >
                     PEN
                   </button>
                 )}
+                {showPenalties && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 text-center">
+                      <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">PEN</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={penMyScore}
+                        onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenMyScore(v); }}
+                        className="w-full bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="0"
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-slate-600 mt-4">-</span>
+                    <div className="w-16 text-center">
+                      <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">PEN</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={penOpScore}
+                        onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenOpScore(v); }}
+                        className="w-full bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              {showPenalties && (
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  <span className="text-[10px] font-bold text-amber-400 uppercase">Penalties</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={penMyScore}
-                    onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenMyScore(v); }}
-                    className="w-12 bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    placeholder="0"
-                  />
-                  <span className="text-sm font-bold text-slate-600">-</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={penOpScore}
-                    onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenOpScore(v); }}
-                    className="w-12 bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    placeholder="0"
-                  />
-                </div>
-              )}
             </div>
             {showNewComp && (
               <div className="mt-4 p-4 bg-slate-900/50 border border-slate-700 rounded-lg space-y-3">

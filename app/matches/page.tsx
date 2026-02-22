@@ -664,6 +664,27 @@ export default function MatchPage() {
                     <p className="h-4 mt-1 text-red-400 text-[10px]">{fieldErrors.opScore || ""}</p>
                   </div>
                 </div>
+                {showPenalties && (
+                  <div className="flex items-center gap-2 -mt-1">
+                    <input
+                      type="number"
+                      min="0"
+                      value={penMyScore}
+                      onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenMyScore(v); }}
+                      className="w-16 bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder="0"
+                    />
+                    <span className="text-sm font-bold text-slate-600">-</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={penOpScore}
+                      onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenOpScore(v); }}
+                      className="w-16 bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
                 {compHasKnockout && (
                   <button
                     type="button"
@@ -673,33 +694,6 @@ export default function MatchPage() {
                   >
                     PEN
                   </button>
-                )}
-                {showPenalties && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 text-center">
-                      <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">PEN</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={penMyScore}
-                        onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenMyScore(v); }}
-                        className="w-full bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="0"
-                      />
-                    </div>
-                    <span className="text-sm font-bold text-slate-600 mt-4">-</span>
-                    <div className="w-16 text-center">
-                      <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">PEN</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={penOpScore}
-                        onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setPenOpScore(v); }}
-                        className="w-full bg-slate-900 p-1.5 text-center text-sm font-bold rounded border border-amber-800/50 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
                 )}
               </div>
             </div>

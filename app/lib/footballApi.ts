@@ -81,15 +81,66 @@ function calculateAge(dateOfBirth: string | undefined): number {
 }
 
 /**
+ * Search for a team in the football-data.org API by name and get its correct API ID
+ * This is needed because game team IDs don't match API team IDs
+ */
+async function getApiTeamIdByName(teamName: string): Promise<number | null> {
+  try {
+    // Search for the team using the teams endpoint with filters
+    const response = await fetch(
+      `${BASE_URL}/competitions/PL/teams`,
+      {
+        method: "GET",
+        headers: { 
+          "X-Auth-Token": API_KEY,
+          "Content-Type": "application/json",
+        },
+        mode: "cors",
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data: any = await response.json();
+    const teams = data.teams || [];
+    
+    // Find exact or substring match
+    const match = teams.find((t: any) => 
+      t.name.toLowerCase() === teamName.toLowerCase() ||
+      t.shortName?.toLowerCase() === teamName.toLowerCase()
+    );
+    
+    return match?.id || null;
+  } catch (error) {
+    console.error("Error searching for team:", error);
+    return null;
+  }
+}
+
+/**
  * Fetch team squad from football-data.org and convert to Player objects
  * Only includes players that exist in the PLAYER_LOOKUP
  */
-export async function fetchTeamSquad(footballDataTeamId: number): Promise<Player[]> {
+export async function fetchTeamSquad(gameTeamId: number, teamName: string): Promise<Player[]> {
   try {
+    // First, get the correct API team ID by searching by name
+    const apiTeamId = await getApiTeamIdByName(teamName);
+    
+    if (!apiTeamId) {
+      throw new Error(
+        `Team "${teamName}" not found in football-data.org. Try a different team.`
+      );
+    }
+
     const response = await fetch(
-      `${BASE_URL}/teams/${footballDataTeamId}`,
+      `${BASE_URL}/teams/${apiTeamId}`,
       {
-        headers: { "X-Auth-Token": API_KEY },
+        method: "GET",
+        headers: { 
+          "X-Auth-Token": API_KEY,
+          "Content-Type": "application/json",
+        },
+        mode: "cors",
       }
     );
 

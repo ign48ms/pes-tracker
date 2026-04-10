@@ -76,8 +76,8 @@ export default function TeamManager() {
     setLoadError(null);
 
     try {
-      // Fetch squad from football-data.org
-      const players = await fetchTeamSquad(selectedTeam.id);
+      // Fetch squad from football-data.org (searches by team name)
+      const players = await fetchTeamSquad(selectedTeam.id, selectedTeam.name);
 
       if (players.length === 0) {
         setLoadError(
@@ -93,7 +93,7 @@ export default function TeamManager() {
       setModal({
         title: "Load Team Squad",
         message: `Your current squad "${teamName}" will be archived. "${selectedTeam.name}" will be created with ${players.length} player(s)${players.length < 11 ? " (you may want to add more)" : ""}.\n\nYou can edit all player details after loading.`,
-        type: "info",
+        type: "confirm",
         confirmText: "Load Team & Archive Current",
         onConfirm: () => {
           // Create new team

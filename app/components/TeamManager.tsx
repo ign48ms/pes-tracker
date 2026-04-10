@@ -1,8 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import CustomModal from "./CustomModal";
 import type { ModalConfig } from "../lib/types";
 import { useApp } from "../lib/AppContext";
+import { LEAGUES } from "../lib/leagueData";
+import { fetchTeamSquad } from "../lib/footballApi";
+import type { Player } from "../lib/types";
 
 export default function TeamManager() {
   const {
@@ -17,6 +20,7 @@ export default function TeamManager() {
     switchViewingTeam,
     renameArchivedTeam,
     removeArchivedTeam,
+    addPlayer,
   } = useApp();
 
   const [modal, setModal] = useState<ModalConfig | null>(null);
@@ -25,6 +29,26 @@ export default function TeamManager() {
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // League/Team selection state
+  const [selectedLeagueIdx, setSelectedLeagueIdx] = useState<number | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [useCustomTeam, setUseCustomTeam] = useState(true);
+
+  const selectedLeague = useMemo(
+    () => (selectedLeagueIdx !== null ? LEAGUES[selectedLeagueIdx] : null),
+    [selectedLeagueIdx]
+  );
+
+  const selectedTeam = useMemo(
+    () =>
+      selectedLeague && selectedTeamId
+        ? selectedLeague.teams.find(t => t.id === selectedTeamId)
+        : null,
+    [selectedLeague, selectedTeamId]
+  );
 
   const handleChangeTeam = () => {
     const name = newTeamName.trim();
@@ -43,6 +67,57 @@ export default function TeamManager() {
         setModal(null);
       },
     });
+  };
+
+  const handleLoadTeamPlayers = async () => {
+    if (!selectedTeam) return;
+
+    setIsLoadingTeam(true);
+    setLoadError(null);
+
+    try {
+      // Fetch squad from football-data.org
+      const players = await fetchTeamSquad(selectedTeam.id);
+
+      if (players.length === 0) {
+        setLoadError(
+          `No matching players found for ${selectedTeam.name}. Try a different team or add players manually.`
+        );
+        setIsLoadingTeam(false);
+        return;
+      }
+
+      // Create new team with the selected team's name
+      const seasonName = newSeasonName.trim() || "Season 1";
+
+      setModal({
+        title: "Load Team Squad",
+        message: `Your current squad "${teamName}" will be archived. "${selectedTeam.name}" will be created with ${players.length} player(s)${players.length < 11 ? " (you may want to add more)" : ""}.\n\nYou can edit all player details after loading.`,
+        type: "info",
+        confirmText: "Load Team & Archive Current",
+        onConfirm: () => {
+          // Create new team
+          createNewTeam(selectedTeam.name, seasonName);
+
+          // Add all loaded players to the new team
+          players.forEach(player => {
+            addPlayer(player);
+          });
+
+          // Reset state
+          setSelectedLeagueIdx(null);
+          setSelectedTeamId(null);
+          setNewSeasonName("");
+          setLoadError(null);
+          setModal(null);
+          setIsLoadingTeam(false);
+        },
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      setLoadError(`Failed to load team: ${errorMsg}`);
+      setIsLoadingTeam(false);
+    }
   };
 
   const handleDeleteArchived = (id: string, name: string) => {
@@ -190,45 +265,170 @@ export default function TeamManager() {
             </div>
           )}
 
-          {/* Change team */}
+          {/* Change team / Load team */}
           <div className="border-t border-slate-700 pt-4">
-            <p className="text-xs text-slate-400 mb-3">
-              Enter a new team name to archive your current squad and start fresh.
-            </p>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">New Team Name</label>
-                  <input
-                    value={newTeamName}
-                    onChange={e => setNewTeamName(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleChangeTeam(); }}
-                    placeholder="e.g. Real Madrid, Bayern..."
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
-                    maxLength={50}
-                  />
-                </div>
-                <div className="w-36">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">First Season Name</label>
-                  <input
-                    value={newSeasonName}
-                    onChange={e => setNewSeasonName(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleChangeTeam(); }}
-                    placeholder="Season 1"
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
-                    maxLength={50}
-                  />
-                </div>
-              </div>
-              <div>
+            <div className="space-y-4">
+              {/* Tab selector: Custom vs Load */}
+              <div className="flex gap-2">
                 <button
-                  onClick={handleChangeTeam}
-                  disabled={!newTeamName.trim()}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold rounded transition"
+                  onClick={() => setUseCustomTeam(true)}
+                  className={`flex-1 px-3 py-2 text-xs font-bold rounded transition ${
+                    useCustomTeam
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  }`}
                 >
-                  Change Team
+                  Custom Team
+                </button>
+                <button
+                  onClick={() => setUseCustomTeam(false)}
+                  className={`flex-1 px-3 py-2 text-xs font-bold rounded transition ${
+                    !useCustomTeam
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  Load from League
                 </button>
               </div>
+
+              {useCustomTeam ? (
+                // Custom team creation
+                <>
+                  <p className="text-xs text-slate-400">
+                    Enter a new team name to archive your current squad and start fresh.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                        New Team Name
+                      </label>
+                      <input
+                        value={newTeamName}
+                        onChange={e => setNewTeamName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleChangeTeam();
+                        }}
+                        placeholder="e.g. Real Madrid, Bayern..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
+                        maxLength={50}
+                      />
+                    </div>
+                    <div className="w-36">
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                        First Season Name
+                      </label>
+                      <input
+                        value={newSeasonName}
+                        onChange={e => setNewSeasonName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleChangeTeam();
+                        }}
+                        placeholder="Season 1"
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
+                        maxLength={50}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleChangeTeam}
+                    disabled={!newTeamName.trim()}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold rounded transition"
+                  >
+                    Change Team
+                  </button>
+                </>
+              ) : (
+                // Load team from league
+                <>
+                  <p className="text-xs text-slate-400">
+                    Select a league and team to automatically load players and archive your current squad.
+                  </p>
+
+                  {/* League selector */}
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                      League
+                    </label>
+                    <select
+                      value={selectedLeagueIdx ?? ""}
+                      onChange={e => {
+                        setSelectedLeagueIdx(
+                          e.target.value === "" ? null : parseInt(e.target.value)
+                        );
+                        setSelectedTeamId(null);
+                        setLoadError(null);
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
+                    >
+                      <option value="">Select a league...</option>
+                      {LEAGUES.map((league, idx) => (
+                        <option key={idx} value={idx}>
+                          {league.name} ({league.country})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Team selector */}
+                  {selectedLeague && (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                        Team
+                      </label>
+                      <select
+                        value={selectedTeamId ?? ""}
+                        onChange={e => {
+                          setSelectedTeamId(
+                            e.target.value === "" ? null : parseInt(e.target.value)
+                          );
+                          setLoadError(null);
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
+                      >
+                        <option value="">Select a team...</option>
+                        {selectedLeague.teams.map(team => (
+                          <option key={team.id} value={team.id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Season name */}
+                  {selectedTeam && (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                        First Season Name
+                      </label>
+                      <input
+                        value={newSeasonName}
+                        onChange={e => setNewSeasonName(e.target.value)}
+                        placeholder="Season 1"
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition"
+                        maxLength={50}
+                      />
+                    </div>
+                  )}
+
+                  {/* Error message */}
+                  {loadError && (
+                    <div className="bg-red-900/20 border border-red-800/50 text-red-300 text-xs p-3 rounded">
+                      {loadError}
+                    </div>
+                  )}
+
+                  {/* Load button */}
+                  <button
+                    onClick={handleLoadTeamPlayers}
+                    disabled={!selectedTeam || isLoadingTeam}
+                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold rounded transition"
+                  >
+                    {isLoadingTeam ? "Loading players..." : "Load Team"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

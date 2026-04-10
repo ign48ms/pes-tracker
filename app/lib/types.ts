@@ -12,6 +12,18 @@ export interface Player {
   status?: PlayerStatus;
 }
 
+// ─── Team selection types ───
+export interface LeagueTeamOption {
+  id: number;
+  name: string;
+}
+
+export interface LeagueOption {
+  name: string;
+  country: string;
+  teams: LeagueTeamOption[];
+}
+
 // ─── Formation types ───
 export interface FormationSlot {
   /** Horizontal position on pitch (0 = left, 100 = right) */
